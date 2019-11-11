@@ -27,7 +27,7 @@ public class VisionPresenter {
     public void startPresenter() {
         mVision = Vision.getInstance();
 
-        mVision.bindService(CustomApplication.getContext(), mVisionBindStateListener);
+        mVision.bindService(LoomoCart.getContext(), mVisionBindStateListener);
     }
 
     public void stopPresenter() {
@@ -55,7 +55,6 @@ public class VisionPresenter {
         @Override
         public void onUnbind(String reason) {
             isVisionBind = false;
-            //mPresInterface.showToast("Vision service: " + reason);
         }
     };
 }
