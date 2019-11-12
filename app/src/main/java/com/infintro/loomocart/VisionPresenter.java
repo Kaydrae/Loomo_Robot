@@ -39,6 +39,10 @@ public class VisionPresenter {
         mVision.unbindService();
     }
 
+    public boolean isServicesAvailable() {
+        return isVisionBind;
+    }
+
     private ServiceBinder.BindStateListener mVisionBindStateListener = new ServiceBinder.BindStateListener() {
         @Override
         public void onBind() {

@@ -13,7 +13,10 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"></com.infintro.loomocart.AutoFitDrawableView>
+        app:layout_constraintTop_toTopOf="parent">
+
+
+    </com.infintro.loomocart.AutoFitDrawableView>
 
     <android.support.v7.widget.Toolbar
         android:id="@+id/toolbar"
@@ -25,7 +28,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <Switch
+    <CheckBox
         android:id="@+id/navigationMode"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -36,7 +39,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <Switch
+    <CheckBox
         android:id="@+id/followMode"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
