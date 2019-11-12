@@ -8,9 +8,9 @@ import android.content.Context;
  * @date 5/29/18
  */
 
-public class CustomApplication extends Application {
+public class LoomoCart extends Application {
 
-    private static CustomApplication mContext;
+    private static LoomoCart mContext;
 
     public static Context getContext() {
         return mContext;

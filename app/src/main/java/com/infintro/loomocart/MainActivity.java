@@ -3,10 +3,12 @@ package com.infintro.loomocart;
 import android.app.Activity;
 import android.graphics.SurfaceTexture;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.TextureView;
 import android.view.View;
+import android.widget.CheckBox;
 
-public class MainActivity extends Activity implements View.OnClickListener {
+public class MainActivity extends Activity  {
 
     public static final String TAG = "FollowMeActivity";
 
@@ -16,14 +18,15 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private AutoFitDrawableView mAutoDrawable;
     private VisionPresenter mVisionPresenter;
 
+    private CheckBox mFollowSwitch;
+    private CheckBox mNavSwitch;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initView();
         initListener();
-        mVisionPresenter = new VisionPresenter(mViewChangeInterface);
-        mVisionPresenter.startPresenter();
     }
 
     @Override
@@ -44,10 +47,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
     //@SuppressLint("WrongViewCast")
     private void initView() {
         mAutoDrawable = (AutoFitDrawableView) findViewById(R.id.drawableView);
+
+        mFollowSwitch = (CheckBox) findViewById(R.id.followMode);
+        mNavSwitch = (CheckBox) findViewById(R.id.navigationMode);
     }
 
     private void initListener() {
-
+        mFollowSwitch.setOnClickListener(mFollowListener);
+        mNavSwitch.setOnClickListener(mNavListener);
     }
 
     private TextureView.SurfaceTextureListener mSurfaceTextureListener = new TextureView.SurfaceTextureListener() {
@@ -80,8 +87,42 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
     };
 
-    @Override
-    public void onClick(View v) {
+//    @Override
+//    public void onClick(View v) {
+//        if (!mVisionPresenter.isServicesAvailable()) return;
+//
+//        switch (v.getId()) {
+//            case R.id.followMode:
+//                mFollowSwitch.toggle();
+//                mNavSwitch.setChecked(false);
+//                break;
+//            case R.id.navigationMode:
+//                mNavSwitch.toggle();
+//                mFollowSwitch.setChecked(false);
+//                break;
+//            default:
+//                break;
+//        }
+//    }
 
-    }
+
+    View.OnClickListener mFollowListener = (new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            Log.d("Follow Listener", "Follow Mode: Clicked");
+            if (mFollowSwitch.isChecked()) {
+                mNavSwitch.setChecked(false);
+            }
+        }
+    });
+
+    View.OnClickListener mNavListener = (new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            Log.d("Nav Listener", "Nav Mode: Clicked");
+            if (mNavSwitch.isChecked()) {
+                mFollowSwitch.setChecked(false);
+            }
+        }
+    });
 }
