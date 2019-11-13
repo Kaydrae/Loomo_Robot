@@ -3,8 +3,11 @@ package com.infintro.loomocart;
 import android.view.Surface;
 
 import com.segway.robot.sdk.base.bind.ServiceBinder;
+import com.segway.robot.sdk.emoji.module.base.Base;
+import com.segway.robot.sdk.emoji.module.head.Head;
 import com.segway.robot.sdk.vision.DTS;
 import com.segway.robot.sdk.vision.Vision;
+import com.segway.robot.support.control.HeadPIDController;
 
 public class VisionPresenter {
     private final static String TAG = "VisionPresenter";
@@ -15,7 +18,12 @@ public class VisionPresenter {
     private ViewChangeInterface mViewInterface;
 
     private Vision mVision;
+    private Head mHead;
+    private Base mBase;
+    private HeadPIDController mHeadPID = new HeadPIDController();
 
+    private boolean isHeadBind;
+    private boolean isBaseBind;
     private boolean isVisionBind;
 
     private DTS mDTS;
