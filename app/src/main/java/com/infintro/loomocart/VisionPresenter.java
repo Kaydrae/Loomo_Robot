@@ -1,9 +1,13 @@
 package com.infintro.loomocart;
 
+import android.util.Log;
 import android.view.Surface;
 
+import com.segway.robot.algo.dts.BaseControlCommand;
+import com.segway.robot.algo.dts.DTSPerson;
 import com.segway.robot.algo.dts.PersonTrackingListener;
 import com.segway.robot.algo.dts.PersonTrackingProfile;
+import com.segway.robot.algo.dts.PersonTrackingWithPlannerListener;
 import com.segway.robot.sdk.base.bind.ServiceBinder;
 import com.segway.robot.sdk.locomotion.head.Angle;
 import com.segway.robot.sdk.locomotion.sbv.Base;
@@ -14,6 +18,8 @@ import com.segway.robot.support.control.HeadPIDController;
 
 public class VisionPresenter {
     private final static String TAG = "VisionPresenter";
+
+    private enum States {INIT_TRACK, END_TRACK};
 
     private final static int TIME_OUT = 10*1000;
 
@@ -33,7 +39,11 @@ public class VisionPresenter {
 
     private boolean noObstacles;
 
+    private long startTime;
+
     private DTS mDTS;
+
+    private States mState;
 
     /* Initialize the Vision Presenter */
     public VisionPresenter(ViewChangeInterface _ViewInterface) {
@@ -73,6 +83,63 @@ public class VisionPresenter {
         mHead.setWorldYaw(0);
         mHead.setWorldPitch(0.7f);
     }
+
+    public void beginFollow() {
+        if (mState == States.INIT_TRACK) {
+            return;
+        }
+
+        startTime = System.currentTimeMillis();
+        mState = States.INIT_TRACK;
+        mDTS.startPlannerPersonTracking(null, mPersonTracking, 60*1000*1000, mTrackingPlanner);
+    }
+
+    public void endFollow() {
+        if (mState == States.INIT_TRACK) {
+            mState = States.END_TRACK;
+            mDTS.stopPlannerPersonTracking();
+        }
+    }
+
+    /* Tracking Listeners */
+    private PersonTrackingWithPlannerListener mTrackingPlanner = new PersonTrackingWithPlannerListener() {
+        @Override
+        public void onPersonTrackingWithPlannerResult(DTSPerson person, BaseControlCommand baseControlCommand) {
+            if (person == null) {
+                if (System.currentTimeMillis() - startTime > TIME_OUT) {
+                    resetHead();
+                }
+
+                return;
+            }
+
+            startTime = System.currentTimeMillis();
+            mHead.setMode(Head.MODE_ORIENTATION_LOCK);
+            mHeadPID.updateTarget(person.getTheta(), person.getDrawingRect(), 480);
+
+            switch (baseControlCommand.getFollowState()) {
+                case BaseControlCommand.State.NORMAL_FOLLOW:
+                    mBase.setControlMode(Base.CONTROL_MODE_RAW);
+                    mBase.setLinearVelocity(baseControlCommand.getLinearVelocity());
+                    mBase.setAngularVelocity(baseControlCommand.getAngularVelocity());
+                    break;
+                case BaseControlCommand.State.HEAD_FOLLOW_BASE:
+                    mBase.setControlMode(Base.CONTROL_MODE_FOLLOW_TARGET);
+                    mBase.updateTarget(0, person.getTheta());
+                    break;
+                case BaseControlCommand.State.SENSOR_ERROR:
+                    mBase.setControlMode(Base.CONTROL_MODE_RAW);
+                    mBase.setLinearVelocity(0);
+                    mBase.setAngularVelocity(0);
+                    break;
+            }
+        }
+
+        @Override
+        public void onPersonTrackingWithPlannerError(int errorCode, String message) {
+            Log.d("PersonTracking", message);
+        }
+    };
 
     /* Service Bind State Listeners */
     private ServiceBinder.BindStateListener mVisionBindStateListener = new ServiceBinder.BindStateListener() {

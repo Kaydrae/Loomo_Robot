@@ -112,6 +112,10 @@ public class MainActivity extends Activity  {
             Log.d("Follow Listener", "Follow Mode: Clicked");
             if (mFollowSwitch.isChecked()) {
                 mNavSwitch.setChecked(false);
+                mVisionPresenter.beginFollow();
+            }
+            else {
+                mVisionPresenter.endFollow();
             }
         }
     });
@@ -122,6 +126,7 @@ public class MainActivity extends Activity  {
             Log.d("Nav Listener", "Nav Mode: Clicked");
             if (mNavSwitch.isChecked()) {
                 mFollowSwitch.setChecked(false);
+                mVisionPresenter.endFollow();
             }
         }
     });
