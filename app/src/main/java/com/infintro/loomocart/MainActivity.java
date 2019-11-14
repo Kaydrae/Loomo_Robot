@@ -113,6 +113,7 @@ public class MainActivity extends Activity  {
             if (mFollowSwitch.isChecked()) {
                 mNavSwitch.setChecked(false);
                 mVisionPresenter.beginFollow();
+
             }
             else {
                 mVisionPresenter.endFollow();
