@@ -32,6 +32,7 @@ public class VisionPresenter {
     private HeadPIDController mHeadPID = new HeadPIDController();
 
     private PersonTrackingProfile mPersonTracking;
+    private DTSPerson[] mPersons;
 
     private boolean isHeadBind;
     private boolean isBaseBind;
@@ -88,10 +89,10 @@ public class VisionPresenter {
         if (mState == States.INIT_TRACK) {
             return;
         }
-
+        mPersons = mDTS.detectPersons(3*1000*1000);
         startTime = System.currentTimeMillis();
         mState = States.INIT_TRACK;
-        mDTS.startPlannerPersonTracking(null, mPersonTracking, 60*1000*1000, mTrackingPlanner);
+        mDTS.startPlannerPersonTracking(mPersons[0], mPersonTracking, 60*1000*1000, mTrackingPlanner);
     }
 
     public void endFollow() {
@@ -113,9 +114,13 @@ public class VisionPresenter {
                 return;
             }
 
+
             startTime = System.currentTimeMillis();
             mHead.setMode(Head.MODE_ORIENTATION_LOCK);
             mHeadPID.updateTarget(person.getTheta(), person.getDrawingRect(), 480);
+
+            AutoFitDrawableView autoFitDrawableView = mViewInterface.getAutoDrawable();
+            autoFitDrawableView.drawRect(person.getDrawingRect());
 
             switch (baseControlCommand.getFollowState()) {
                 case BaseControlCommand.State.NORMAL_FOLLOW:
