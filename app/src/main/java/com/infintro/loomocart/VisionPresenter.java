@@ -3,15 +3,21 @@ package com.infintro.loomocart;
 import android.util.Log;
 import android.view.Surface;
 
+import com.segway.robot.algo.Pose2D;
+import com.segway.robot.algo.PoseVLS;
+import com.segway.robot.algo.VLSPoseListener;
 import com.segway.robot.algo.dts.BaseControlCommand;
 import com.segway.robot.algo.dts.DTSPerson;
 import com.segway.robot.algo.dts.PersonTrackingListener;
 import com.segway.robot.algo.dts.PersonTrackingProfile;
 import com.segway.robot.algo.dts.PersonTrackingWithPlannerListener;
+import com.segway.robot.algo.minicontroller.CheckPoint;
+import com.segway.robot.algo.minicontroller.CheckPointStateListener;
 import com.segway.robot.sdk.base.bind.ServiceBinder;
 import com.segway.robot.sdk.locomotion.head.Angle;
 import com.segway.robot.sdk.locomotion.sbv.Base;
 import com.segway.robot.sdk.locomotion.head.Head;
+import com.segway.robot.sdk.locomotion.sbv.StartVLSListener;
 import com.segway.robot.sdk.vision.DTS;
 import com.segway.robot.sdk.vision.Vision;
 import com.segway.robot.support.control.HeadPIDController;
@@ -19,7 +25,7 @@ import com.segway.robot.support.control.HeadPIDController;
 public class VisionPresenter {
     private final static String TAG = "VisionPresenter";
 
-    private enum States {INIT_TRACK, END_TRACK};
+    private enum States {INIT_TRACK, END_TRACK, INIT_NAV, END_NAV};
 
     private final static int TIME_OUT = 10*1000;
 
@@ -71,6 +77,8 @@ public class VisionPresenter {
         }
 
         mVision.unbindService();
+        mHead.unbindService();
+        mBase.unbindService();
     }
 
     /* Helper functions */
@@ -86,9 +94,8 @@ public class VisionPresenter {
     }
 
     public void beginFollow() {
-        if (mState == States.INIT_TRACK) {
-            return;
-        }
+        if (mState == States.INIT_TRACK) return;
+        Log.d(TAG, "Beginning follow...");
         mPersons = mDTS.detectPersons(3*1000*1000);
         startTime = System.currentTimeMillis();
         mState = States.INIT_TRACK;
@@ -97,8 +104,52 @@ public class VisionPresenter {
 
     public void endFollow() {
         if (mState == States.INIT_TRACK) {
+            Log.d(TAG, "Ending follow...");
             mState = States.END_TRACK;
             mDTS.stopPlannerPersonTracking();
+            mHeadPID.stop();
+            mBase.clearCheckPointsAndStop();
+            resetHead();
+            Log.d(TAG, "Follow stopped.");
+        }
+    }
+
+    public void beginNav() {
+        if (mState == States.INIT_NAV) return;
+        Log.d(TAG, "Begging nav...");
+        mBase.setControlMode(Base.CONTROL_MODE_NAVIGATION);
+
+        Log.d(TAG, "Control Mode: " + mBase.getControlMode());
+
+        mBase.startVLS(true, true, mStartVLS);
+
+        while (!(mBase.isVLSStarted()));
+
+        mBase.setOnCheckPointArrivedListener(mCheckPointListener);
+
+        mBase.cleanOriginalPoint();
+        Pose2D pose2D = mBase.getOdometryPose(-1);
+        mBase.setOriginalPoint(pose2D);
+
+        Log.d(TAG, "Original Checkpoint: " + pose2D);
+
+        mBase.addCheckPoint(1f, 0);
+        mBase.addCheckPoint(0, 0);
+
+        Log.d(TAG, "Added checkpoints...");
+
+        mState = States.INIT_NAV;
+    }
+
+    public void endNav() {
+        if (mState == States.INIT_NAV) {
+            Log.d(TAG, "Ending nav...");
+            mBase.clearCheckPointsAndStop();
+            mBase.stopVLS();
+            mBase.setControlMode(Base.CONTROL_MODE_RAW);
+            mBase.stop();
+            mState = States.END_NAV;
+            Log.d(TAG, "Nav stopped.");
         }
     }
 
@@ -143,6 +194,31 @@ public class VisionPresenter {
         @Override
         public void onPersonTrackingWithPlannerError(int errorCode, String message) {
             Log.d("PersonTracking", message);
+        }
+    };
+
+    private StartVLSListener mStartVLS = new StartVLSListener() {
+        @Override
+        public void onOpened() {
+            mBase.setNavigationDataSource(Base.NAVIGATION_SOURCE_TYPE_VLS);
+            mBase.setOnCheckPointArrivedListener(mCheckPointListener);
+        }
+
+        @Override
+        public void onError(String errorMessage) {
+            Log.d(TAG, "ERROR: " + errorMessage);
+        }
+    };
+
+    private CheckPointStateListener mCheckPointListener = new CheckPointStateListener() {
+        @Override
+        public void onCheckPointArrived(CheckPoint checkPoint, Pose2D realPose, boolean isLast) {
+            Log.d(TAG, "Arrived at check point: " + checkPoint);
+        }
+
+        @Override
+        public void onCheckPointMiss(CheckPoint checkPoint, Pose2D realPose, boolean isLast, int reason) {
+
         }
     };
 

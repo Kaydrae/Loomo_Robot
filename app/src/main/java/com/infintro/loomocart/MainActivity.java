@@ -44,6 +44,13 @@ public class MainActivity extends Activity  {
         finish();
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mVisionPresenter.stopPresenter();
+        finish();
+    }
+
     //@SuppressLint("WrongViewCast")
     private void initView() {
         mAutoDrawable = (AutoFitDrawableView) findViewById(R.id.drawableView);
@@ -112,8 +119,8 @@ public class MainActivity extends Activity  {
             Log.d("Follow Listener", "Follow Mode: Clicked");
             if (mFollowSwitch.isChecked()) {
                 mNavSwitch.setChecked(false);
+                mVisionPresenter.endNav();
                 mVisionPresenter.beginFollow();
-
             }
             else {
                 mVisionPresenter.endFollow();
@@ -128,6 +135,10 @@ public class MainActivity extends Activity  {
             if (mNavSwitch.isChecked()) {
                 mFollowSwitch.setChecked(false);
                 mVisionPresenter.endFollow();
+                mVisionPresenter.beginNav();
+            }
+            else {
+                mVisionPresenter.endNav();
             }
         }
     });
