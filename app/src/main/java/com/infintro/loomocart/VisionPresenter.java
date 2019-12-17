@@ -128,14 +128,13 @@ public class VisionPresenter {
         mBase.setOnCheckPointArrivedListener(mCheckPointListener);
 
         mBase.cleanOriginalPoint();
-        Pose2D pose2D = mBase.getOdometryPose(-1);
-        mBase.setOriginalPoint(pose2D);
+        Pose2D pose = mBase.getOdometryPose(-1);
+        mBase.setOriginalPoint(pose);
 
-        Log.d(TAG, "Original Checkpoint: " + pose2D);
+        Log.d(TAG, "Original Checkpoint: " + pose);
 
-        mBase.addCheckPoint(1f, 0);
-        mBase.addCheckPoint(0, 0);
-
+        mBase.addCheckPoint(13.75f, 0, (float) (Math.PI / 2));
+        mBase.addCheckPoint(13.75f, 10f);
         Log.d(TAG, "Added checkpoints...");
 
         mState = States.INIT_NAV;
