@@ -44,6 +44,7 @@ public class MainActivity extends Activity  {
         finish();
     }
 
+
     //@SuppressLint("WrongViewCast")
     private void initView() {
         mAutoDrawable = (AutoFitDrawableView) findViewById(R.id.drawableView);
