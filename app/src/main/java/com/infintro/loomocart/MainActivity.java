@@ -44,26 +44,13 @@ public class MainActivity extends Activity  {
         finish();
     }
 
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
-=======
->>>>>>> Stashed changes
     @Override
     protected void onDestroy() {
         super.onDestroy();
         mVisionPresenter.stopPresenter();
         finish();
     }
-<<<<<<< Updated upstream
 
-=======
->>>>>>> master
-
->>>>>>> Stashed changes
->>>>>>> Stashed changes
     //@SuppressLint("WrongViewCast")
     private void initView() {
         mAutoDrawable = (AutoFitDrawableView) findViewById(R.id.drawableView);
