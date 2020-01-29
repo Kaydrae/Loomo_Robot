@@ -4,6 +4,7 @@ import android.speech.tts.Voice;
 import android.util.Log;
 import android.view.Surface;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -78,9 +79,26 @@ public class VisionPresenter {
     private boolean bindSpeakerService = false;
     private TtsListener mTtsListener;
 
+    //path variables
+    private Float[][][] paths = {
+            {{2.44f, 0f, 0f}},
+            {{7.32f, 0f, 0f}},
+            {{12.19f, 0f, 0f}},
+            {{0.91f, 0f, (float) (Math.PI/2)}, {0.91f, 9.14f, 0f}}
+    };
+
+    private List<Float[]> homePath;
+
+    private enum PATH{BRD1, BRD2, BRD3, LOBBY, HOME}
+    private PATH mPath;
+
+
+
     /* Initialize the Vision Presenter */
     public VisionPresenter(ViewChangeInterface _ViewInterface) {
         mViewInterface = _ViewInterface;
+        homePath = new ArrayList<Float[]>();
+        homePath.add(new Float[]{0.0f, 0.0f, (float) (Math.PI)});
     }
 
     public void startPresenter() {
@@ -170,8 +188,15 @@ public class VisionPresenter {
 
         Log.d(TAG, "Original Checkpoint: " + pose);
 
-        mBase.addCheckPoint(13.75f, 0, (float) (Math.PI / 2));
-        mBase.addCheckPoint(13.75f, 10f);
+        mPath = PATH.BRD1;
+        int i = 0;
+        for (Float[] checkpoint : paths[mPath.ordinal()]) {
+            mBase.addCheckPoint(checkpoint[0], checkpoint[1], checkpoint[2]);
+
+            if (mPath != PATH.HOME) {
+                homePath.add((++i), checkpoint);
+            }
+        }
         Log.d(TAG, "Added checkpoints...");
 
         mState = States.INIT_NAV;
@@ -251,6 +276,8 @@ public class VisionPresenter {
         @Override
         public void onCheckPointArrived(CheckPoint checkPoint, Pose2D realPose, boolean isLast) {
             Log.d(TAG, "Arrived at check point: " + checkPoint);
+
+            if (isLast) endNav();
         }
 
         @Override
