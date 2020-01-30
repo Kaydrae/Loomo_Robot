@@ -1,19 +1,14 @@
 package com.infintro.loomocart;
 
-import android.speech.tts.Voice;
 import android.util.Log;
 import android.view.Surface;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 import com.segway.robot.algo.Pose2D;
-import com.segway.robot.algo.PoseVLS;
-import com.segway.robot.algo.VLSPoseListener;
 import com.segway.robot.algo.dts.BaseControlCommand;
 import com.segway.robot.algo.dts.DTSPerson;
-import com.segway.robot.algo.dts.PersonTrackingListener;
 import com.segway.robot.algo.dts.PersonTrackingProfile;
 import com.segway.robot.algo.dts.PersonTrackingWithPlannerListener;
 import com.segway.robot.algo.minicontroller.CheckPoint;
@@ -35,8 +30,6 @@ import com.segway.robot.support.control.HeadPIDController;
 import com.segway.robot.sdk.voice.recognition.RecognitionListener;
 import com.segway.robot.sdk.voice.tts.TtsListener;
 import com.segway.robot.sdk.voice.grammar.GrammarConstraint;
-import com.segway.robot.sdk.voice.grammar.Slot;
-import com.segway.robot.sdk.voice.tts.TtsListener;
 
 
 public class VisionPresenter {
@@ -49,6 +42,7 @@ public class VisionPresenter {
     private PresenterChangeInterface mPresInterface;
     private ViewChangeInterface mViewInterface;
 
+    //service interfaces
     private Vision mVision;
     private Head mHead;
     private Base mBase;
@@ -56,13 +50,16 @@ public class VisionPresenter {
     private Recognizer mRecognizer;
     private Speaker mSpeaker;
 
+    //tracking variables
     private PersonTrackingProfile mPersonTracking;
     private DTSPerson[] mPersons;
 
+    //booleans for checking of a given service is bound
     private boolean isHeadBind;
     private boolean isBaseBind;
     private boolean isVisionBind;
-    //private boolean isRecognizerBind;
+    private boolean isRecognizerBind;
+    private boolean isSpeakerBind;
 
     private boolean noObstacles;
 
@@ -75,8 +72,6 @@ public class VisionPresenter {
     //audio specific variables
     private ServiceBinder.BindStateListener mRecognitionBindStateListener;
     private ServiceBinder.BindStateListener mSpeakerBindStateListener;
-    private boolean bindRecognitionService = false;
-    private boolean bindSpeakerService = false;
     private TtsListener mTtsListener;
 
     //path variables
@@ -134,8 +129,7 @@ public class VisionPresenter {
 
     /* Helper functions */
     public boolean isServicesAvailable() {
-
-        return isVisionBind && isBaseBind && isHeadBind;
+        return isVisionBind && isBaseBind && isHeadBind && isRecognizerBind && isSpeakerBind;
     }
 
     private void resetHead() {
@@ -145,8 +139,17 @@ public class VisionPresenter {
     }
 
     public void beginFollow() {
-        if (mState == States.INIT_TRACK) return;
+        if (mState == States.INIT_NAV) {
+            speak("I cannot follow, I am currently navigating.", 100);
+            return;
+        }
+
+        if (mState == States.INIT_TRACK) {
+            speak("I am already following.", 100);
+            return;
+        }
         Log.d(TAG, "Beginning follow...");
+
         speak("I am following!", 100);
         mPersons = mDTS.detectPersons(3*1000*1000);
         startTime = System.currentTimeMillis();
@@ -164,11 +167,23 @@ public class VisionPresenter {
             mBase.clearCheckPointsAndStop();
             resetHead();
             Log.d(TAG, "Follow stopped.");
+        } else {
+            speak("I am not currently following.", 100);
         }
     }
 
     public void beginNav() {
-        if (mState == States.INIT_NAV) return;
+        //prevent starting navigation if it is in following mode
+        if (mState == States.INIT_TRACK) {
+            speak("I cannot navigate, I am currently following.", 100);
+            return;
+        }
+
+        if (mState == States.INIT_NAV) {
+            speak("I am already navigating.", 100);
+            return;
+        }
+
         Log.d(TAG, "Begging nav...");
         speak("I am on my way.", 100);
 
@@ -188,7 +203,7 @@ public class VisionPresenter {
 
         Log.d(TAG, "Original Checkpoint: " + pose);
 
-        mPath = PATH.BRD1;
+//        mPath = PATH.BRD1;
         int i = 0;
         for (Float[] checkpoint : paths[mPath.ordinal()]) {
             mBase.addCheckPoint(checkpoint[0], checkpoint[1], checkpoint[2]);
@@ -207,11 +222,13 @@ public class VisionPresenter {
             Log.d(TAG, "Ending nav...");
             mBase.clearCheckPointsAndStop();
             mBase.stopVLS();
-            mBase.setControlMode(Base.CONTROL_MODE_RAW);
-            mBase.stop();
+            //mBase.setControlMode(Base.CONTROL_MODE_RAW);
+            //mBase.stop();
             mState = States.END_NAV;
             Log.d(TAG, "Nav stopped.");
             speak("I have arrived.", 100);
+        } else {
+            speak("I am not currently navigating.", 100);
         }
     }
 
@@ -277,7 +294,17 @@ public class VisionPresenter {
         public void onCheckPointArrived(CheckPoint checkPoint, Pose2D realPose, boolean isLast) {
             Log.d(TAG, "Arrived at check point: " + checkPoint);
 
-            if (isLast) endNav();
+            if (isLast) {
+                Log.d(TAG, "ARRIVED AT LAST CHECKPOINT");
+
+                try {
+                    Log.d(TAG, "ENDING NAVIGATION VIA CHECKPOINT");
+                    endNav();
+                    Log.d(TAG, "ENDED NAVIGATION SUCCESSFULLY VIA CHECKPOINT");
+                } catch (Exception e) {
+                    Log.d(TAG, "CHECK POINT EXCEPTION: ", e);
+                }
+            }
         }
 
         @Override
@@ -363,6 +390,11 @@ public class VisionPresenter {
         }
     };
 
+    //function will tell the voice listeners if they are allowed to turn the head
+    private boolean can_move_head() {
+      return true;
+    };
+
     /*
     * All Voice Recognition Definitions
     * */
@@ -378,6 +410,25 @@ public class VisionPresenter {
         public void onWakeupResult(WakeupResult wakeupResult) {
             Log.d(TAG, "[WakeupListener](onWakeupResult): Wakeup word:" + wakeupResult.getResult() + ", angle " + wakeupResult.getAngle());
 
+            String result = wakeupResult.getResult();
+
+            if (result.equals("stop")) {
+                if (mState == States.INIT_NAV) {
+                    endNav();
+                } else if (mState == States.INIT_TRACK) {
+                    endFollow();
+                } else {
+                    speak("I am not currently moving.", 100);
+                }
+                return;
+            }
+
+            float angle = (float)wakeupResult.getAngle()/(float)90;
+
+            Log.d(TAG, "WAKEUP ANGLE: " + angle + " - " + wakeupResult.getAngle());
+
+            resetHead();
+            mHead.setIncrementalYaw(angle);
         }
 
         @Override
@@ -400,11 +451,56 @@ public class VisionPresenter {
 
             String result = recognitionResult.getRecognitionResult();
 
-            if (result.equals("say hello") || result.equals(("hi"))) {
-                speak("Hello.", 100);
+            Log.d(TAG, "SPEECH RECOGNITION RESULT: " + result);
+
+            if (result.contains("say")) {
+                if (result.contains("hello") || result.contains("hi")) {
+                    speak("Hello.", 100);
+                }
+                else if (result.contains("goodbye") || result.contains("bye")) {
+                    speak("Goodbye.", 100);
+                }
             }
-            else if (result.equals("say goodbye") || result.equals("say bye")) {
-                speak("Goodbye.", 100);
+            else if (result.equals("follow me")) {
+                beginFollow();
+            }
+            else if (result.contains("navigate to") || result.contains("go to")) {
+                if (result.contains("boardroom one")) {
+                    mPath = PATH.BRD1;
+                }
+                else if (result.contains("boardroom two")) {
+                    mPath = PATH.BRD2;
+                }
+                else if (result.contains("boardroom three")) {
+                    mPath = PATH.BRD3;
+                }
+                else if (result.contains("lobby")) {
+                    mPath = PATH.LOBBY;
+                }
+                else if (result.contains("home")) {
+                    mPath = PATH.HOME;
+                }
+                else{
+                    speak("I am not sure where you asked me to go.", 100);
+                    return false;
+                }
+                Log.d(TAG, "BEGINNING SPEECH NAV");
+                beginNav();
+            }
+            else if (result.contains("stop")) {
+                if (result.contains("following")) {
+                    endFollow();
+                } else if (result.contains("navigating")) {
+                    endNav();
+                } else {
+                    if (mState == States.INIT_NAV) {
+                        endNav();
+                    } else if (mState == States.INIT_TRACK) {
+                        endFollow();
+                    } else {
+                        speak("I am not currently moving.", 100);
+                    }
+                }
             }
 
             return false;
@@ -440,12 +536,12 @@ public class VisionPresenter {
                     Log.d(TAG, "STARTUP VOICE EXCEPTION: ",e);
                 }
 
-                bindRecognitionService = true;
+                isRecognizerBind = true;
             }
 
             @Override
             public void onUnbind(String reason) {
-                bindRecognitionService = false;
+                isRecognizerBind = false;
             }
         };
 
@@ -454,7 +550,7 @@ public class VisionPresenter {
             public void onBind() {
                 Log.d(TAG, "STARTING SPEAKER BIND LISTENER");
 
-                bindSpeakerService = true;
+                isSpeakerBind = true;
 
                //tell the user Loomo's speech is now working
                 speak("I am alive.", 100);
@@ -488,20 +584,19 @@ public class VisionPresenter {
     }
 
     private void addEnglishGrammar() throws VoiceException {
-        Log.d(TAG, "ADDING ENGLISH GRAMMAR");
-        String grammarJson = "{\n" +
-                "         \"name\": \"play_media\",\n" +
+        Log.d(TAG, "ADDING CONVERSATION GRAMMAR");
+        String conversationGrammarJson = "{\n" +
+                "         \"name\": \"conversation_start\",\n" +
                 "         \"slotList\": [\n" +
                 "             {\n" +
                 "                 \"name\": \"play_cmd\",\n" +
                 "                 \"isOptional\": false,\n" +
                 "                 \"word\": [\n" +
-                "                     \"say\",\n" +
-                "                     \"close\"\n" +
+                "                     \"say\"\n" +
                 "                 ]\n" +
                 "             },\n" +
                 "             {\n" +
-                "                 \"name\": \"media\",\n" +
+                "                 \"name\": \"conversation_middle\",\n" +
                 "                 \"isOptional\": false,\n" +
                 "                 \"word\": [\n" +
                 "                     \"hello\",\n" +
@@ -513,8 +608,40 @@ public class VisionPresenter {
                 "         ]\n" +
                 "     }";
 
-        GrammarConstraint mTwoSlotGrammar = mRecognizer.createGrammarConstraint(grammarJson);
-        mRecognizer.addGrammarConstraint(mTwoSlotGrammar);
+        Log.d(TAG, "ADDING COMMAND GRAMMAR");
+        String commandGrammarJson = "{\n" +
+                "         \"name\": \"command_start\",\n" +
+                "         \"slotList\": [\n" +
+                "             {\n" +
+                "                 \"name\": \"play_cmd\",\n" +
+                "                 \"isOptional\": false,\n" +
+                "                 \"word\": [\n" +
+                "                     \"follow me\",\n" +
+                "                     \"go to\",\n" +
+                "                     \"navigate to\"\n" +
+                "                 ]\n" +
+                "             },\n" +
+                "             {\n" +
+                "                 \"name\": \"command_middle\",\n" +
+                "                 \"isOptional\": true,\n" +
+                "                 \"word\": [\n" +
+                "                     \"boardroom one\",\n" +
+                "                     \"boardroom two\",\n" +
+                "                     \"boardroom three\",\n" +
+                "                     \"lobby\",\n" +
+                "                     \"home\"\n" +
+                "                 ]\n" +
+                "             }\n" +
+                "         ]\n" +
+                "     }";
+
+
+        //add the grammar to the recognizer
+        GrammarConstraint conversationGrammar = mRecognizer.createGrammarConstraint(conversationGrammarJson);
+        mRecognizer.addGrammarConstraint(conversationGrammar);
+
+        GrammarConstraint commandGrammar = mRecognizer.createGrammarConstraint(commandGrammarJson);
+        mRecognizer.addGrammarConstraint(commandGrammar);
     }
 
     //making speech easier and also a class call
