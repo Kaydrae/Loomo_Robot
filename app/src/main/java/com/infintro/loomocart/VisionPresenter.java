@@ -174,7 +174,7 @@ public class VisionPresenter {
         }
     }
 
-    public void beginNav() {
+    public void beginNav(PATH _path) {
         //prevent starting navigation if it is in following mode
         if (mState == States.INIT_TRACK) {
             speak("I cannot navigate, I am currently following.", 100);
@@ -204,7 +204,7 @@ public class VisionPresenter {
 
         Log.d(TAG, "Original Checkpoint: " + pose);
 
-        mPath = _path
+        mPath = _path;
         int i = 0;
         for (Float[] checkpoint : paths[mPath.ordinal()]) {
             mBase.addCheckPoint(checkpoint[0], checkpoint[1], checkpoint[2]);
@@ -467,26 +467,25 @@ public class VisionPresenter {
             }
             else if (result.contains("navigate to") || result.contains("go to")) {
                 if (result.contains("boardroom one")) {
-                    mPath = PATH.BRD1;
+                    beginNav(PATH.BRD1);
                 }
                 else if (result.contains("boardroom two")) {
-                    mPath = PATH.BRD2;
+                    beginNav(PATH.BRD2);
                 }
                 else if (result.contains("boardroom three")) {
-                    mPath = PATH.BRD3;
+                    beginNav(PATH.BRD3);
                 }
                 else if (result.contains("lobby")) {
-                    mPath = PATH.LOBBY;
+                    beginNav(PATH.LOBBY);
                 }
                 else if (result.contains("home")) {
-                    mPath = PATH.HOME;
+                    beginNav(PATH.HOME);
                 }
                 else{
                     speak("I am not sure where you asked me to go.", 100);
                     return false;
                 }
                 Log.d(TAG, "BEGINNING SPEECH NAV");
-                beginNav();
             }
             else if (result.contains("stop")) {
                 if (result.contains("following")) {
