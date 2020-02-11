@@ -35,7 +35,7 @@ import com.segway.robot.sdk.voice.grammar.GrammarConstraint;
 public class VisionPresenter {
     private final static String TAG = "VisionPresenter";
 
-    private enum States {INIT_TRACK, END_TRACK, INIT_NAV, END_NAV}
+    public enum States {INIT_TRACK, END_TRACK, INIT_NAV, END_NAV}
 
     private final static int TIME_OUT = 10*1000;
 
@@ -84,10 +84,8 @@ public class VisionPresenter {
 
     private List<Float[]> homePath;
 
-    private enum PATH{BRD1, BRD2, BRD3, LOBBY, HOME}
+    public enum PATH{BRD1, BRD2, BRD3, LOBBY, HOME}
     private PATH mPath;
-
-
 
     /* Initialize the Vision Presenter */
     public VisionPresenter(ViewChangeInterface _ViewInterface) {
@@ -130,6 +128,10 @@ public class VisionPresenter {
     /* Helper functions */
     public boolean isServicesAvailable() {
         return isVisionBind && isBaseBind && isHeadBind && isRecognizerBind && isSpeakerBind;
+    }
+
+    public States getState() {
+        return mState;
     }
 
     private void resetHead() {
@@ -183,7 +185,6 @@ public class VisionPresenter {
             speak("I am already navigating.", 100);
             return;
         }
-
         Log.d(TAG, "Begging nav...");
         speak("I am on my way.", 100);
 
@@ -203,7 +204,7 @@ public class VisionPresenter {
 
         Log.d(TAG, "Original Checkpoint: " + pose);
 
-//        mPath = PATH.BRD1;
+        mPath = _path
         int i = 0;
         for (Float[] checkpoint : paths[mPath.ordinal()]) {
             mBase.addCheckPoint(checkpoint[0], checkpoint[1], checkpoint[2]);
