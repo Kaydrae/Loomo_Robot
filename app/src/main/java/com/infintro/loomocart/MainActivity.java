@@ -6,7 +6,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.TextureView;
 import android.view.View;
-import android.widget.CheckBox;
+import android.widget.Button;
+import android.widget.LinearLayout;
 
 public class MainActivity extends Activity  {
 
@@ -18,8 +19,29 @@ public class MainActivity extends Activity  {
     private AutoFitDrawableView mAutoDrawable;
     private VisionPresenter mVisionPresenter;
 
-    private CheckBox mFollowSwitch;
-    private CheckBox mNavSwitch;
+    private Button mFollowButton;
+    private Button mHomeButton;
+    private Button mBrd1Button;
+    private Button mBrd2Button;
+    private Button mBrd3Button;
+    private Button mLobbyButton;
+
+    private LinearLayout mButtonLayout;
+
+    private boolean isFollowing;
+
+    private interface NavReachedListner {
+        public void onChange();
+    }
+
+    private NavReachedListner mNavComplete = new NavReachedListner() {
+        @Override
+        public void onChange() {
+            if (mVisionPresenter.getState() == VisionPresenter.States.END_NAV) {
+                mButtonLayout.setEnabled(true);
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,6 +49,7 @@ public class MainActivity extends Activity  {
         setContentView(R.layout.activity_main);
         initView();
         initListener();
+        isFollowing = false;
     }
 
     @Override
@@ -35,6 +58,7 @@ public class MainActivity extends Activity  {
         int rotation = getWindowManager().getDefaultDisplay().getRotation();
         mAutoDrawable.setPreviewSizeAndRotation(PREVIEW_WIDTH, PREVIEW_HEIGHT, rotation);
         mAutoDrawable.setSurfaceTextureListenerForPerview(mSurfaceTextureListener);
+        isFollowing = false;
     }
 
     @Override
@@ -53,15 +77,20 @@ public class MainActivity extends Activity  {
 
     //@SuppressLint("WrongViewCast")
     private void initView() {
-        mAutoDrawable = (AutoFitDrawableView) findViewById(R.id.drawableView);
+        mAutoDrawable = findViewById(R.id.drawableView);
 
-        mFollowSwitch = (CheckBox) findViewById(R.id.followMode);
-        mNavSwitch = (CheckBox) findViewById(R.id.navigationMode);
+        mFollowButton = findViewById(R.id.followButton);
+        mHomeButton = findViewById(R.id.homeButton);
+        mBrd1Button = findViewById(R.id.brd1Button);
+        mBrd2Button = findViewById(R.id.brd2Button);
+        mBrd3Button = findViewById(R.id.brd3Button);
+        mLobbyButton = findViewById(R.id.lobbyButton);
+
+        mButtonLayout = findViewById(R.id.buttonLayout);
     }
 
     private void initListener() {
-        mFollowSwitch.setOnClickListener(mFollowListener);
-        mNavSwitch.setOnClickListener(mNavListener);
+        mFollowButton.setOnClickListener(followListener);
     }
 
     private TextureView.SurfaceTextureListener mSurfaceTextureListener = new TextureView.SurfaceTextureListener() {
@@ -94,52 +123,28 @@ public class MainActivity extends Activity  {
         }
     };
 
-//    @Override
-//    public void onClick(View v) {
-//        if (!mVisionPresenter.isServicesAvailable()) return;
-//
-//        switch (v.getId()) {
-//            case R.id.followMode:
-//                mFollowSwitch.toggle();
-//                mNavSwitch.setChecked(false);
-//                break;
-//            case R.id.navigationMode:
-//                mNavSwitch.toggle();
-//                mFollowSwitch.setChecked(false);
-//                break;
-//            default:
-//                break;
-//        }
-//    }
-
-
-    View.OnClickListener mFollowListener = (new View.OnClickListener() {
+    private View.OnClickListener followListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
-            Log.d("Follow Listener", "Follow Mode: Clicked");
-            if (mFollowSwitch.isChecked()) {
-                mNavSwitch.setChecked(false);
-                mVisionPresenter.endNav();
+            if (!isFollowing) {
                 mVisionPresenter.beginFollow();
+                isFollowing = true;
             }
-            else {
+            else  {
                 mVisionPresenter.endFollow();
+                isFollowing = false;
             }
-        }
-    });
 
-    View.OnClickListener mNavListener = (new View.OnClickListener() {
+            Log.d(TAG, "Following State: " + isFollowing);
+        }
+    };
+
+    private View.OnClickListener homeListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
-            Log.d("Nav Listener", "Nav Mode: Clicked");
-            if (mNavSwitch.isChecked()) {
-                mFollowSwitch.setChecked(false);
-                mVisionPresenter.endFollow();
-                mVisionPresenter.beginNav();
-            }
-            else {
-                mVisionPresenter.endNav();
-            }
+            if (isFollowing) mVisionPresenter.endNav();
+
+            mVisionPresenter.beginNav(VisionPresenter.PATH.HOME);
         }
-    });
+    };
 }
