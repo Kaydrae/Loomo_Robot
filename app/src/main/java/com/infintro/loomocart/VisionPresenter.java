@@ -79,8 +79,11 @@ public class VisionPresenter {
             {{2.44f, 0f, 0f}},
             {{7.32f, 0f, 0f}},
             {{12.19f, 0f, 0f}},
-            {{0.91f, 0f, (float) (Math.PI/2)}, {0.91f, 9.14f, 0f}}
+            {{0.91f, 0f, (float) (Math.PI/2)}, {0.91f, 9.14f, 0f}},
+            {{0f, 0f, 0f}}
     };
+
+    private Pose2D pose;
 
     private List<Float[]> homePath;
 
@@ -90,8 +93,6 @@ public class VisionPresenter {
     /* Initialize the Vision Presenter */
     public VisionPresenter(ViewChangeInterface _ViewInterface) {
         mViewInterface = _ViewInterface;
-        homePath = new ArrayList<Float[]>();
-        homePath.add(new Float[]{0.0f, 0.0f, (float) (Math.PI)});
     }
 
     public void startPresenter() {
@@ -167,6 +168,13 @@ public class VisionPresenter {
             mDTS.stopPlannerPersonTracking();
             mHeadPID.stop();
             mBase.clearCheckPointsAndStop();
+
+            if (mPath == PATH.HOME) {
+                mBase.cleanOriginalPoint();
+                pose = mBase.getOdometryPose(-1);
+                mBase.setOriginalPoint(pose);
+            }
+
             resetHead();
             Log.d(TAG, "Follow stopped.");
         } else {
@@ -198,22 +206,20 @@ public class VisionPresenter {
 
         mBase.setOnCheckPointArrivedListener(mCheckPointListener);
 
-        mBase.cleanOriginalPoint();
-        Pose2D pose = mBase.getOdometryPose(-1);
-        mBase.setOriginalPoint(pose);
+        if (mPath == PATH.HOME || mPath == null) {
+            mBase.cleanOriginalPoint();
+            pose = mBase.getOdometryPose(-1);
+            mBase.setOriginalPoint(pose);
+        }
 
         Log.d(TAG, "Original Checkpoint: " + pose);
 
         mPath = _path;
-        int i = 0;
         for (Float[] checkpoint : paths[mPath.ordinal()]) {
             mBase.addCheckPoint(checkpoint[0], checkpoint[1], checkpoint[2]);
-
-            if (mPath != PATH.HOME) {
-                homePath.add((++i), checkpoint);
-            }
         }
         Log.d(TAG, "Added checkpoints...");
+        Log.d(TAG, "Current Path: " + mPath);
 
         mState = States.INIT_NAV;
     }
