@@ -78,23 +78,35 @@ public class VisionPresenter {
     private TtsListener mTtsListener;
 
     //path variables
+//    private Float[][][] paths = {
+//            {{2.44f, 0f, 0f}},
+//            {{7.32f, 0f, 0f}},
+//            {{12.19f, 0f, 0f}},
+//            {{0.91f, 0f, (float) (Math.PI/2)}, {0.91f, 9.14f, 0f}},
+//            {{0f, 0f, 0f}}
+//    };
+
     private Float[][][] paths = {
-            {{2.44f, 0f, 0f}},
-            {{7.32f, 0f, 0f}},
-            {{12.19f, 0f, 0f}},
-            {{0.91f, 0f, (float) (Math.PI/2)}, {0.91f, 9.14f, 0f}}
+            {{1.52f, 0f, 0f}},
+            {{5.79f, 0f, 0f}},
+            {{7.62f, 0f, 0f}},
+            {{9.45f, 0f, 0f}},
+            {{12.8f, 0f, 0f}},
+            {{0f, 2.74f, 0f}},
+            {{0f, 0f, 0f}}
     };
+
+    private Pose2D pose;
 
     private List<Float[]> homePath;
 
-    public enum PATH{BRD1, BRD2, BRD3, LOBBY, HOME}
+//    public enum PATH{BRD1, BRD2, BRD3, LOBBY, HOME}
+    public enum PATH{TAB1, TAB2, TAB3, TAB4, TAB5, TAB6, HOME};
     private PATH mPath;
 
     /* Initialize the Vision Presenter */
     public VisionPresenter(ViewChangeInterface _ViewInterface) {
         mViewInterface = _ViewInterface;
-        homePath = new ArrayList<Float[]>();
-        homePath.add(new Float[]{0.0f, 0.0f, (float) (Math.PI)});
     }
 
     public void startPresenter() {
@@ -178,6 +190,13 @@ public class VisionPresenter {
             mDTS.stopPlannerPersonTracking();
             mHeadPID.stop();
             mBase.clearCheckPointsAndStop();
+
+            if (mPath == PATH.HOME) {
+                mBase.cleanOriginalPoint();
+                pose = mBase.getOdometryPose(-1);
+                mBase.setOriginalPoint(pose);
+            }
+
             resetHead();
             Log.d(TAG, "Follow stopped.");
         } else {
@@ -185,7 +204,7 @@ public class VisionPresenter {
         }
     }
 
-    public void beginNav() {
+    public void beginNav(PATH _path) {
         //prevent starting navigation if it is in following mode
         if (mState == States.INIT_TRACK) {
             speak("I cannot navigate, I am currently following.", 100);
@@ -209,22 +228,20 @@ public class VisionPresenter {
 
         mBase.setOnCheckPointArrivedListener(mCheckPointListener);
 
-        mBase.cleanOriginalPoint();
-        Pose2D pose = mBase.getOdometryPose(-1);
-        mBase.setOriginalPoint(pose);
+        if (mPath == PATH.HOME || mPath == null) {
+            mBase.cleanOriginalPoint();
+            pose = mBase.getOdometryPose(-1);
+            mBase.setOriginalPoint(pose);
+        }
 
         Log.d(TAG, "Original Checkpoint: " + pose);
 
-        mPath = _path
-        int i = 0;
+        mPath = _path;
         for (Float[] checkpoint : paths[mPath.ordinal()]) {
             mBase.addCheckPoint(checkpoint[0], checkpoint[1], checkpoint[2]);
-
-            if (mPath != PATH.HOME) {
-                homePath.add((++i), checkpoint);
-            }
         }
         Log.d(TAG, "Added checkpoints...");
+        Log.d(TAG, "Current Path: " + mPath);
 
         mState = States.INIT_NAV;
     }
@@ -476,20 +493,41 @@ public class VisionPresenter {
                 beginFollow();
             }
             else if (result.contains("navigate to") || result.contains("go to")) {
-                if (result.contains("boardroom one")) {
-                    mPath = PATH.BRD1;
+//                if (result.contains("boardroom one")) {
+//                    beginNav(PATH.BRD1);
+//                }
+//                else if (result.contains("boardroom two")) {
+//                    beginNav(PATH.BRD2);
+//                }
+//                else if (result.contains("boardroom three")) {
+//                    beginNav(PATH.BRD3);
+//                }
+//                else if (result.contains("lobby")) {
+//                    beginNav(PATH.LOBBY);
+//                }
+//                else if (result.contains("home")) {
+//                    beginNav(PATH.HOME);
+//                }
+                if (result.contains("table one")) {
+                    beginNav(PATH.TAB1);
                 }
-                else if (result.contains("boardroom two")) {
-                    mPath = PATH.BRD2;
+                else if (result.contains("table two")) {
+                    beginNav(PATH.TAB2);
                 }
-                else if (result.contains("boardroom three")) {
-                    mPath = PATH.BRD3;
+                else if (result.contains("table three")) {
+                    beginNav(PATH.TAB3);
                 }
-                else if (result.contains("lobby")) {
-                    mPath = PATH.LOBBY;
+                else if (result.contains(("table four"))) {
+                    beginNav(PATH.TAB4);
+                }
+                else if (result.contains("table five")) {
+                    beginNav(PATH.TAB5);
+                }
+                else if (result.contains("table six")) {
+                    beginNav(PATH.TAB6);
                 }
                 else if (result.contains("home")) {
-                    mPath = PATH.HOME;
+                    beginNav(PATH.HOME);
                 }
                 else{
                     speak("I am not sure where you asked me to go.", 100);
@@ -497,7 +535,6 @@ public class VisionPresenter {
                 }
 
                 Log.d(TAG, "BEGINNING SPEECH NAV");
-                beginNav();
             }
             else if (result.contains("stop")) {
                 if (result.contains("following")) {
