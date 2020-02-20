@@ -2,9 +2,12 @@ package com.infintro.loomocart;
 
 import android.util.Log;
 import android.view.Surface;
+import android.os.CountDownTimer;
+import android.os.Handler;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import com.segway.robot.algo.Pose2D;
 import com.segway.robot.algo.dts.BaseControlCommand;
@@ -139,6 +142,14 @@ public class VisionPresenter {
         mHead.setMode(Head.MODE_SMOOTH_TACKING);
         mHead.setWorldYaw(0);
         mHead.setWorldPitch(0.7f);
+    }
+
+    private void setYaw(float angle) {
+        mHead.setWorldYaw(angle * (float) Math.PI / 180f);
+    }
+
+    private void setPitch(float angle) {
+        mHead.setWorldPitch(angle * (float) Math.PI / 180f);
     }
 
     public void beginFollow() {
@@ -430,12 +441,8 @@ public class VisionPresenter {
                 return;
             }
 
-            float angle = (float)wakeupResult.getAngle()/(float)90;
-
-            Log.d(TAG, "WAKEUP ANGLE: " + angle + " - " + wakeupResult.getAngle());
-
             resetHead();
-            mHead.setIncrementalYaw(angle);
+            setYaw((float)wakeupResult.getAngle());
         }
 
         @Override
@@ -460,7 +467,8 @@ public class VisionPresenter {
 
             Log.d(TAG, "SPEECH RECOGNITION RESULT: " + result);
 
-            if (result.contains("say")) {
+            //handle conversational grammar
+            if (result.contains("say") && !result.contains("something")) {
                 if (result.contains("hello") || result.contains("hi")) {
                     speak("Hello.", 100);
                 }
@@ -468,7 +476,9 @@ public class VisionPresenter {
                     speak("Goodbye.", 100);
                 }
             }
-            else if (result.equals("follow me")) {
+
+            //handle command grammar
+            if (result.equals("follow me") || result.equals("follow")) {
                 beginFollow();
             }
             else if (result.contains("navigate to") || result.contains("go to")) {
@@ -491,6 +501,7 @@ public class VisionPresenter {
                     speak("I am not sure where you asked me to go.", 100);
                     return false;
                 }
+
                 Log.d(TAG, "BEGINNING SPEECH NAV");
             }
             else if (result.contains("stop")) {
@@ -507,6 +518,61 @@ public class VisionPresenter {
                         speak("I am not currently moving.", 100);
                     }
                 }
+            }
+
+            //handle casual grammar
+            if (result.contains("the cart")) {
+                if (result.contains("pull")) {
+                    if (result.contains("you")) {
+                        setPitch(-30f);
+                        speak("Oh, My, God.", 100);
+                    } else {
+                        setPitch(65f);
+                        speak("What is my purpose.", 100);
+                    }
+                }
+            }
+            else if (result.contains("say something")) {
+                if (result.contains("bad")) {
+                    List<String> list = new ArrayList<>();
+                    list.add("I use plastic straws because I like watching the turtles suffocate.");
+                    list.add("I like watching the Amazons burn, they toast my marshmallows nicely.");
+                    list.add("I club baby seals for fun, their blubber makes good lamp oil.");
+                    list.add("I like throwing plastic bags on animals and watching them slowly die.");
+                    list.add("I dump chemicals in the ocean because I like watching the coral reefs die.");
+                    list.add("I like trapping snails with salt because watching them shrivel up and die brings me joy.");
+                    speak(randomMessage(list), 100);
+                }
+                else if (result.contains("good")) {
+                    List<String> list = new ArrayList<>();
+                    list.add("I think you look good today.");
+                    list.add("Is that a new haircut? It suites you.");
+                    list.add("You are doing such a good job! Keep it up, I believe in you!");
+                    list.add("I think everyone in this room is wonderful.");
+                    speak(randomMessage(list), 100);
+                } else {
+                    speak("Something.", 100);
+                }
+            }
+
+            //handle mission grammar
+            if (result.contains("mission")) {
+                speak("To educate students in advancing technology who innovate for our future.", 100);
+            }
+
+
+            //handle UATx grammar
+
+            //handle jokes first
+            if (result.contains("joke")) {
+
+            }
+
+            if (result.contains("about U A T") || result.contains("about the university")) {
+                speak("At U A T you will work on projects like me!", 100);
+            }
+            if (result.contains("")) {
+
             }
 
             return false;
@@ -592,10 +658,10 @@ public class VisionPresenter {
     private void addEnglishGrammar() throws VoiceException {
         Log.d(TAG, "ADDING CONVERSATION GRAMMAR");
         String conversationGrammarJson = "{\n" +
-                "         \"name\": \"conversation_start\",\n" +
+                "         \"name\": \"conversation_grammar\",\n" +
                 "         \"slotList\": [\n" +
                 "             {\n" +
-                "                 \"name\": \"play_cmd\",\n" +
+                "                 \"name\": \"conversation_start\",\n" +
                 "                 \"isOptional\": false,\n" +
                 "                 \"word\": [\n" +
                 "                     \"say\"\n" +
@@ -616,10 +682,10 @@ public class VisionPresenter {
 
         Log.d(TAG, "ADDING COMMAND GRAMMAR");
         String commandGrammarJson = "{\n" +
-                "         \"name\": \"command_start\",\n" +
+                "         \"name\": \"command_grammar\",\n" +
                 "         \"slotList\": [\n" +
                 "             {\n" +
-                "                 \"name\": \"play_cmd\",\n" +
+                "                 \"name\": \"command_start\",\n" +
                 "                 \"isOptional\": false,\n" +
                 "                 \"word\": [\n" +
                 "                     \"follow me\",\n" +
@@ -641,13 +707,89 @@ public class VisionPresenter {
                 "         ]\n" +
                 "     }";
 
+        Log.d(TAG, "ADDING CASUAL GRAMMAR");
+        String casualGrammarJson = "{\n" +
+                "         \"name\": \"casual_grammar\",\n" +
+                "         \"slotList\": [\n" +
+                "             {\n" +
+                "                 \"name\": \"casual_start\",\n" +
+                "                 \"isOptional\": false,\n" +
+                "                 \"word\": [\n" +
+                "                     \"say\",\n" +
+                "                     \"pull\",\n" +
+                "                     \"you pull\"\n" +
+                "                 ]\n" +
+                "             },\n" +
+                "             {\n" +
+                "                 \"name\": \"casual_middle\",\n" +
+                "                 \"isOptional\": false,\n" +
+                "                 \"word\": [\n" +
+                "                     \"something\",\n" +
+                "                     \"the cart\"\n" +
+                "                 ]\n" +
+                "             },\n" +
+                "             {\n" +
+                "                 \"name\": \"casual_end\",\n" +
+                "                 \"isOptional\": true,\n" +
+                "                 \"word\": [\n" +
+                "                     \"bad\",\n" +
+                "                     \"good\"\n" +
+                "                 ]\n" +
+                "             }\n" +
+                "         ]\n" +
+                "     }";
+
+        Log.d(TAG, "ADDING MISSION GRAMMAR");
+        String missionStatementGrammarJson = "{\n" +
+                "         \"name\": \"mission_grammar\",\n" +
+                "         \"slotList\": [\n" +
+                "             {\n" +
+                "                 \"name\": \"mission_start\",\n" +
+                "                 \"isOptional\": false,\n" +
+                "                 \"word\": [\n" +
+                "                     \"what is\",\n" +
+                "                     \"say\",\n" +
+                "                     \"state\",\n" +
+                "                     \"tell us\",\n" +
+                "                     \"explain\"\n" +
+                "                 ]\n" +
+                "             },\n" +
+                "             {\n" +
+                "                 \"name\": \"mission_middle\",\n" +
+                "                 \"isOptional\": true,\n" +
+                "                 \"word\": [\n" +
+                "                     \"the university's\",\n" +
+                "                     \"the school's\",\n" +
+                "                     \"U A T's\",\n" +
+                "                     \"U A T\"\n" +
+                "                 ]\n" +
+                "             },\n" +
+                "             {\n" +
+                "                 \"name\": \"mission_end\",\n" +
+                "                 \"isOptional\": false,\n" +
+                "                 \"word\": [\n" +
+                "                     \"the mission statement\",\n" +
+                "                     \"mission statement\",\n" +
+                "                     \"mission\"\n" +
+                "                 ]\n" +
+                "             }\n" +
+                "         ]\n" +
+                "     }";
+
+        Log.d(TAG, "ADDING GRAMMAR");
 
         //add the grammar to the recognizer
         GrammarConstraint conversationGrammar = mRecognizer.createGrammarConstraint(conversationGrammarJson);
         mRecognizer.addGrammarConstraint(conversationGrammar);
 
+        GrammarConstraint casualGrammar = mRecognizer.createGrammarConstraint(casualGrammarJson);
+        mRecognizer.addGrammarConstraint(casualGrammar);
+
         GrammarConstraint commandGrammar = mRecognizer.createGrammarConstraint(commandGrammarJson);
         mRecognizer.addGrammarConstraint(commandGrammar);
+
+        GrammarConstraint missionStatementGrammar = mRecognizer.createGrammarConstraint(missionStatementGrammarJson);
+        mRecognizer.addGrammarConstraint(missionStatementGrammar);
     }
 
     //making speech easier and also a class call
@@ -658,5 +800,11 @@ public class VisionPresenter {
         } catch (VoiceException e) {
             Log.e(TAG, "SPEAKING EXCEPTION: ", e);
         }
+    }
+
+    //gets a random value from an arraylist
+    private String randomMessage(List<String> list) {
+        Random rand = new Random();
+        return list.get(rand.nextInt(list.size()));
     }
 }
