@@ -29,6 +29,7 @@ public class MainActivity extends Activity  {
     private LinearLayout mButtonLayout;
 
     private boolean isFollowing;
+    private boolean isNavigating;
 
     private interface NavReachedListner {
         public void onChange();
@@ -91,6 +92,11 @@ public class MainActivity extends Activity  {
 
     private void initListener() {
         mFollowButton.setOnClickListener(followListener);
+        mHomeButton.setOnClickListener(homeListener);
+        mBrd1Button.setOnClickListener(brd1Listener);
+        mBrd2Button.setOnClickListener(brd2Listener);
+        mBrd3Button.setOnClickListener(brd3Listener);
+        mLobbyButton.setOnClickListener(lobbyListener);
     }
 
     private TextureView.SurfaceTextureListener mSurfaceTextureListener = new TextureView.SurfaceTextureListener() {
@@ -126,6 +132,8 @@ public class MainActivity extends Activity  {
     private View.OnClickListener followListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
+            if (isNavigating) mVisionPresenter.endNav();
+
             if (!isFollowing) {
                 mVisionPresenter.beginFollow();
                 isFollowing = true;
@@ -142,9 +150,45 @@ public class MainActivity extends Activity  {
     private View.OnClickListener homeListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
-            if (isFollowing) mVisionPresenter.endNav();
+            if (isFollowing) mVisionPresenter.endFollow();
 
             mVisionPresenter.beginNav(VisionPresenter.PATH.HOME);
+        }
+    };
+
+    private View.OnClickListener brd1Listener = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            if (isFollowing) mVisionPresenter.endFollow();
+
+            mVisionPresenter.beginNav(VisionPresenter.PATH.BRD1);
+        }
+    };
+
+    private View.OnClickListener brd2Listener = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            if (isFollowing) mVisionPresenter.endFollow();
+
+            mVisionPresenter.beginNav(VisionPresenter.PATH.BRD2);
+        }
+    };
+
+    private View.OnClickListener brd3Listener = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            if (isFollowing) mVisionPresenter.endFollow();
+
+            mVisionPresenter.beginNav(VisionPresenter.PATH.BRD3);
+        }
+    };
+
+    private View.OnClickListener lobbyListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            if (isFollowing) mVisionPresenter.endFollow();
+
+            mVisionPresenter.beginNav(VisionPresenter.PATH.LOBBY);
         }
     };
 }
