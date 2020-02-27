@@ -87,6 +87,10 @@ public class VisionPresenter {
 //    };
 
     private Float[][][] paths = {
+            {{2.44f, 0f, 0f}},
+            {{7.32f, 0f, 0f}},
+            {{12.19f, 0f, 0f}},
+            {{0.91f, 0f, (float) (Math.PI/2)}, {0.91f, 9.14f, 0f}},
             {{1.52f, 0f, 0f}},
             {{5.79f, 0f, 0f}},
             {{7.62f, 0f, 0f}},
@@ -101,7 +105,7 @@ public class VisionPresenter {
     private List<Float[]> homePath;
 
 //    public enum PATH{BRD1, BRD2, BRD3, LOBBY, HOME}
-    public enum PATH{TAB1, TAB2, TAB3, TAB4, TAB5, TAB6, HOME};
+    public enum PATH{BRD1, BRD2, BRD3, LOBBY, TAB1, TAB2, TAB3, TAB4, TAB5, TAB6, HOME};
     private PATH mPath;
 
     /* Initialize the Vision Presenter */
@@ -125,6 +129,8 @@ public class VisionPresenter {
         mSpeaker.bindService(LoomoCart.getContext(), mSpeakerBindStateListener);
 
         mPersonTracking = new PersonTrackingProfile(3, 1.0f);
+
+        mPath = PATH.HOME;
     }
 
     /* Stop the vision presenter */
@@ -493,22 +499,22 @@ public class VisionPresenter {
                 beginFollow();
             }
             else if (result.contains("navigate to") || result.contains("go to")) {
-//                if (result.contains("boardroom one")) {
-//                    beginNav(PATH.BRD1);
-//                }
-//                else if (result.contains("boardroom two")) {
-//                    beginNav(PATH.BRD2);
-//                }
-//                else if (result.contains("boardroom three")) {
-//                    beginNav(PATH.BRD3);
-//                }
-//                else if (result.contains("lobby")) {
-//                    beginNav(PATH.LOBBY);
-//                }
-//                else if (result.contains("home")) {
-//                    beginNav(PATH.HOME);
-//                }
-                if (result.contains("table one")) {
+                if (result.contains("boardroom one")) {
+                    beginNav(PATH.BRD1);
+                }
+                else if (result.contains("boardroom two")) {
+                    beginNav(PATH.BRD2);
+                }
+                else if (result.contains("boardroom three")) {
+                    beginNav(PATH.BRD3);
+                }
+                else if (result.contains("lobby")) {
+                    beginNav(PATH.LOBBY);
+                }
+                else if (result.contains("home")) {
+                    beginNav(PATH.HOME);
+                }
+                else if (result.contains("table one")) {
                     beginNav(PATH.TAB1);
                 }
                 else if (result.contains("table two")) {
