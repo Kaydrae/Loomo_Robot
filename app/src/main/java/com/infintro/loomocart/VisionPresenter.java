@@ -223,6 +223,7 @@ public class VisionPresenter {
         }
         Log.d(TAG, "Begging nav...");
         speak("I am on my way.", 100);
+        resetHead();
 
         mBase.setControlMode(Base.CONTROL_MODE_NAVIGATION);
 
@@ -499,37 +500,22 @@ public class VisionPresenter {
                 beginFollow();
             }
             else if (result.contains("navigate to") || result.contains("go to")) {
-                if (result.contains("boardroom one")) {
-                    beginNav(PATH.BRD1);
-                }
-                else if (result.contains("boardroom two")) {
-                    beginNav(PATH.BRD2);
-                }
-                else if (result.contains("boardroom three")) {
-                    beginNav(PATH.BRD3);
-                }
-                else if (result.contains("lobby")) {
-                    beginNav(PATH.LOBBY);
-                }
-                else if (result.contains("home")) {
-                    beginNav(PATH.HOME);
-                }
-                else if (result.contains("table one")) {
+                if (result.contains("table one") || result.contains("admissions")) {
                     beginNav(PATH.TAB1);
                 }
-                else if (result.contains("table two")) {
+                else if (result.contains("table two") || result.contains("student services")) {
                     beginNav(PATH.TAB2);
                 }
-                else if (result.contains("table three")) {
+                else if (result.contains("table three") || result.contains("clubs")) {
                     beginNav(PATH.TAB3);
                 }
-                else if (result.contains(("table four"))) {
+                else if (result.contains("table four") || result.contains("faculty")) {
                     beginNav(PATH.TAB4);
                 }
-                else if (result.contains("table five")) {
+                else if (result.contains("table five") || result.contains("housing")) {
                     beginNav(PATH.TAB5);
                 }
-                else if (result.contains("table six")) {
+                else if (result.contains("table six") || result.contains("financial aid")) {
                     beginNav(PATH.TAB6);
                 }
                 else if (result.contains("home")) {
@@ -763,6 +749,18 @@ public class VisionPresenter {
                 "                 \"name\": \"command_middle\",\n" +
                 "                 \"isOptional\": true,\n" +
                 "                 \"word\": [\n" +
+                "                     \"table one\",\n" +
+                "                     \"table two\",\n" +
+                "                     \"table three\",\n" +
+                "                     \"table four\",\n" +
+                "                     \"table five\",\n" +
+                "                     \"table six\",\n" +
+                "                     \"admissions\",\n" +
+                "                     \"student services\",\n" +
+                "                     \"clubs\",\n" +
+                "                     \"faculty\",\n" +
+                "                     \"housing\",\n" +
+                "                     \"financial aid\",\n" +
                 "                     \"boardroom one\",\n" +
                 "                     \"boardroom two\",\n" +
                 "                     \"boardroom three\",\n" +
@@ -834,6 +832,7 @@ public class VisionPresenter {
                 "      \"word\": [\n" +
                 "        \"hi\",\n" +
                 "        \"hello\",\n" +
+                "        \"something\",\n" +
                 "        \"something about\",\n" +
                 "        \"a joke\",\n" +
                 "        \"a joke about\",\n" +
@@ -858,7 +857,8 @@ public class VisionPresenter {
                 "        \"the school's\",\n" +
                 "        \"you\",\n" +
                 "        \"a joke\",\n" +
-                "        \"home\",\n" +
+                "        \"good\",\n" +
+                "        \"bad\",\n" +
                 "        \"the mission statement\",\n" +
                 "        \"mission statement\",\n" +
                 "        \"mission\"\n" +
@@ -870,11 +870,11 @@ public class VisionPresenter {
         Log.d(TAG, "ADDING GRAMMAR");
 
         //add the grammar to the recognizer
-        GrammarConstraint conversationGrammar = mRecognizer.createGrammarConstraint(conversationGrammarJson);
-        mRecognizer.addGrammarConstraint(conversationGrammar);
+        //GrammarConstraint conversationGrammar = mRecognizer.createGrammarConstraint(conversationGrammarJson);
+        //mRecognizer.addGrammarConstraint(conversationGrammar);
 
-        GrammarConstraint casualGrammar = mRecognizer.createGrammarConstraint(casualGrammarJson);
-        mRecognizer.addGrammarConstraint(casualGrammar);
+        //GrammarConstraint casualGrammar = mRecognizer.createGrammarConstraint(casualGrammarJson);
+        //mRecognizer.addGrammarConstraint(casualGrammar);
 
         GrammarConstraint commandGrammar = mRecognizer.createGrammarConstraint(commandGrammarJson);
         mRecognizer.addGrammarConstraint(commandGrammar);
