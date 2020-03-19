@@ -223,6 +223,7 @@ public class VisionPresenter {
         }
         Log.d(TAG, "Begging nav...");
         speak("I am on my way.", 100);
+        resetHead();
 
         mBase.setControlMode(Base.CONTROL_MODE_NAVIGATION);
 
@@ -499,37 +500,22 @@ public class VisionPresenter {
                 beginFollow();
             }
             else if (result.contains("navigate to") || result.contains("go to")) {
-                if (result.contains("boardroom one")) {
-                    beginNav(PATH.BRD1);
-                }
-                else if (result.contains("boardroom two")) {
-                    beginNav(PATH.BRD2);
-                }
-                else if (result.contains("boardroom three")) {
-                    beginNav(PATH.BRD3);
-                }
-                else if (result.contains("lobby")) {
-                    beginNav(PATH.LOBBY);
-                }
-                else if (result.contains("home")) {
-                    beginNav(PATH.HOME);
-                }
-                else if (result.contains("table one")) {
+                if (result.contains("table one") || result.contains("admissions")) {
                     beginNav(PATH.TAB1);
                 }
-                else if (result.contains("table two")) {
+                else if (result.contains("table two") || result.contains("student services")) {
                     beginNav(PATH.TAB2);
                 }
-                else if (result.contains("table three")) {
+                else if (result.contains("table three") || result.contains("clubs")) {
                     beginNav(PATH.TAB3);
                 }
-                else if (result.contains(("table four"))) {
+                else if (result.contains("table four") || result.contains("faculty")) {
                     beginNav(PATH.TAB4);
                 }
-                else if (result.contains("table five")) {
+                else if (result.contains("table five") || result.contains("housing")) {
                     beginNav(PATH.TAB5);
                 }
-                else if (result.contains("table six")) {
+                else if (result.contains("table six") || result.contains("financial aid")) {
                     beginNav(PATH.TAB6);
                 }
                 else if (result.contains("home")) {
@@ -570,8 +556,54 @@ public class VisionPresenter {
                     }
                 }
             }
-            else if (result.contains("say something")) {
-                if (result.contains("bad")) {
+
+
+            //handle mission grammar
+            if (result.contains("mission")) {
+                speak("To educate students in advancing technology who innovate for our future.", 100);
+            }
+
+
+            //handle UATx grammar
+
+            if (result.equals("what is zero divided by zero")) {
+                speak("Imagine you have zero cookies to divide among 0 friends. See? It makes no sense, and cookie monster is sad there are no cookies, and you are sad you have no friends.", 100);
+            }
+
+            //handle jokes first
+            if (result.contains("joke")) {
+                List<String> list = new ArrayList<>();
+                list.add("Why did the developer go broke? Because he used up all his cache");
+                list.add("There's a band called 1023 Megabytes. They haven't had any gigs yet.");
+                list.add("What am I, Alexa? Just kidding, I'm much more fun.");
+                list.add("01100110 01110101");
+                list.add("Why did the robot cross the road? Because it was programmed by a chicken!");
+                list.add("Did you hear about Google's new AI powered robotic broom? Soon, it'll be sweeping the nation.");
+                list.add("Have you guys heard of this new AI robot that can take off all your clothes, and then give you a whole new outfit? I've seen it change people.");
+                list.add("Why is a robot mechanic never lonely? Because he is always making new friends!");
+                speak(randomMessage(list), 100);
+            }
+
+            else if (result.contains("something")) {
+                if (result.contains("about U A T") || result.contains("about the university") || result.contains("about the school")) {
+                    List<String> list = new ArrayList<>();
+                    list.add("At U A T you will work on projects like me!");
+                    list.add("At U A T we offer degrees such as Computer Science, Game Programming, and Network Security");
+                    list.add("At U A T we have cool projects for students such as the I o T Lab");
+                    list.add("At U A T there are many clubs such as the E-sports Club, Social Gaming Club, and Robotics Club.");
+                    list.add("At U A T we host events such as the Global Game Jam and I o T Dev-fest");
+                    speak(randomMessage(list), 100);
+                }
+                else if (result.contains("about you")) {
+                    List<String> list = new ArrayList<>();
+                    list.add("I am a robot made by segway.");
+                    list.add("I was programmed by Brandon, Dylan, and Ke'ondrae.");
+                    list.add("I was made to be a transport and entertainment robot for perimeter 83.");
+                    list.add("I am able to follow people around, just say 'okay loomo, follow me'");
+                    list.add("I have multiple sensors including a depth sensing camera, a ultra sonic distance sensor, and a 5 way directional microphone.");
+                    speak(randomMessage(list), 100);
+                }
+                else if (result.contains("bad")) {
                     List<String> list = new ArrayList<>();
                     list.add("I use plastic straws because I like watching the turtles suffocate.");
                     list.add("I like watching the Amazons burn, they toast my marshmallows nicely.");
@@ -588,29 +620,10 @@ public class VisionPresenter {
                     list.add("You are doing such a good job! Keep it up, I believe in you!");
                     list.add("I think everyone in this room is wonderful.");
                     speak(randomMessage(list), 100);
-                } else {
-                    speak("Something.", 100);
                 }
             }
-
-            //handle mission grammar
-            if (result.contains("mission")) {
-                speak("To educate students in advancing technology who innovate for our future.", 100);
-            }
-
-
-            //handle UATx grammar
-
-            //handle jokes first
-            if (result.contains("joke")) {
-
-            }
-
-            if (result.contains("about U A T") || result.contains("about the university")) {
-                speak("At U A T you will work on projects like me!", 100);
-            }
-            if (result.contains("")) {
-
+            else {
+                speak("Something.", 100);
             }
 
             return false;
@@ -726,6 +739,7 @@ public class VisionPresenter {
                 "                 \"name\": \"command_start\",\n" +
                 "                 \"isOptional\": false,\n" +
                 "                 \"word\": [\n" +
+                "                     \"follow\",\n" +
                 "                     \"follow me\",\n" +
                 "                     \"go to\",\n" +
                 "                     \"navigate to\"\n" +
@@ -735,6 +749,18 @@ public class VisionPresenter {
                 "                 \"name\": \"command_middle\",\n" +
                 "                 \"isOptional\": true,\n" +
                 "                 \"word\": [\n" +
+                "                     \"table one\",\n" +
+                "                     \"table two\",\n" +
+                "                     \"table three\",\n" +
+                "                     \"table four\",\n" +
+                "                     \"table five\",\n" +
+                "                     \"table six\",\n" +
+                "                     \"admissions\",\n" +
+                "                     \"student services\",\n" +
+                "                     \"clubs\",\n" +
+                "                     \"faculty\",\n" +
+                "                     \"housing\",\n" +
+                "                     \"financial aid\",\n" +
                 "                     \"boardroom one\",\n" +
                 "                     \"boardroom two\",\n" +
                 "                     \"boardroom three\",\n" +
@@ -779,49 +805,76 @@ public class VisionPresenter {
 
         Log.d(TAG, "ADDING MISSION GRAMMAR");
         String missionStatementGrammarJson = "{\n" +
-                "         \"name\": \"mission_grammar\",\n" +
-                "         \"slotList\": [\n" +
-                "             {\n" +
-                "                 \"name\": \"mission_start\",\n" +
-                "                 \"isOptional\": false,\n" +
-                "                 \"word\": [\n" +
-                "                     \"what is\",\n" +
-                "                     \"say\",\n" +
-                "                     \"state\",\n" +
-                "                     \"tell us\",\n" +
-                "                     \"explain\"\n" +
-                "                 ]\n" +
-                "             },\n" +
-                "             {\n" +
-                "                 \"name\": \"mission_middle\",\n" +
-                "                 \"isOptional\": true,\n" +
-                "                 \"word\": [\n" +
-                "                     \"the university's\",\n" +
-                "                     \"the school's\",\n" +
-                "                     \"U A T's\",\n" +
-                "                     \"U A T\"\n" +
-                "                 ]\n" +
-                "             },\n" +
-                "             {\n" +
-                "                 \"name\": \"mission_end\",\n" +
-                "                 \"isOptional\": false,\n" +
-                "                 \"word\": [\n" +
-                "                     \"the mission statement\",\n" +
-                "                     \"mission statement\",\n" +
-                "                     \"mission\"\n" +
-                "                 ]\n" +
-                "             }\n" +
-                "         ]\n" +
-                "     }";
+                "  \"name\": \"uatx_grammar\",\n" +
+                "  \"slotList\": [\n" +
+                "    {\n" +
+                "      \"name\": \"uatx_start\",\n" +
+                "      \"isOptional\": false,\n" +
+                "      \"word\": [\n" +
+                "        \"say\",\n" +
+                "        \"state\",\n" +
+                "        \"what is\",\n" +
+                "        \"tell us\",\n" +
+                "        \"explain\",\n" +
+                "        \n" +
+                "        \"what is zero divided by zero\",\n" +
+                "        \n" +
+                "        \"pull the cart\",\n" +
+                "        \"you pull the cart\",\n" +
+                "        \n" +
+                "        \"tell me\",\n" +
+                "        \"navigate to\"\n" +
+                "      ]\n" +
+                "    },\n" +
+                "    {\n" +
+                "     \"name\": \"uatx_middle\",\n" +
+                "      \"isOptional\": true,\n" +
+                "      \"word\": [\n" +
+                "        \"hi\",\n" +
+                "        \"hello\",\n" +
+                "        \"something\",\n" +
+                "        \"something about\",\n" +
+                "        \"a joke\",\n" +
+                "        \"a joke about\",\n" +
+                "        \"home\",\n" +
+                "        \"U A T\",\n" +
+                "        \"U A T's\",\n" +
+                "        \"the university\",\n" +
+                "        \"the school\",\n" +
+                "        \"the university's\",\n" +
+                "        \"the school's\"\n" +
+                "      ]\n" +
+                "    },\n" +
+                "    {\n" +
+                "     \"name\": \"uatx_end\",\n" +
+                "      \"isOptional\": true,\n" +
+                "      \"word\": [\n" +
+                "        \"U A T\",\n" +
+                "        \"U A T's\",\n" +
+                "        \"the university\",\n" +
+                "        \"the school\",\n" +
+                "        \"the university's\",\n" +
+                "        \"the school's\",\n" +
+                "        \"you\",\n" +
+                "        \"a joke\",\n" +
+                "        \"good\",\n" +
+                "        \"bad\",\n" +
+                "        \"the mission statement\",\n" +
+                "        \"mission statement\",\n" +
+                "        \"mission\"\n" +
+                "      ]\n" +
+                "    }\n" +
+                "  ]\n" +
+                "}";
 
         Log.d(TAG, "ADDING GRAMMAR");
 
         //add the grammar to the recognizer
-        GrammarConstraint conversationGrammar = mRecognizer.createGrammarConstraint(conversationGrammarJson);
-        mRecognizer.addGrammarConstraint(conversationGrammar);
+        //GrammarConstraint conversationGrammar = mRecognizer.createGrammarConstraint(conversationGrammarJson);
+        //mRecognizer.addGrammarConstraint(conversationGrammar);
 
-        GrammarConstraint casualGrammar = mRecognizer.createGrammarConstraint(casualGrammarJson);
-        mRecognizer.addGrammarConstraint(casualGrammar);
+        //GrammarConstraint casualGrammar = mRecognizer.createGrammarConstraint(casualGrammarJson);
+        //mRecognizer.addGrammarConstraint(casualGrammar);
 
         GrammarConstraint commandGrammar = mRecognizer.createGrammarConstraint(commandGrammarJson);
         mRecognizer.addGrammarConstraint(commandGrammar);

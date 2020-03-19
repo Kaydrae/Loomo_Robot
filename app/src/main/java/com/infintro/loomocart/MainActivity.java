@@ -88,6 +88,9 @@ public class MainActivity extends Activity  {
         mLobbyButton = findViewById(R.id.lobbyButton);
 
         mButtonLayout = findViewById(R.id.buttonLayout);
+
+        mButtonLayout.setEnabled(false);
+        mFollowButton.setEnabled(false);
     }
 
     private void initListener() {
