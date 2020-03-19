@@ -514,24 +514,24 @@ public class VisionPresenter {
                 else if (result.contains("home")) {
                     beginNav(PATH.HOME);
                 }
-                else if (result.contains("table one")) {
-                    beginNav(PATH.TAB1);
-                }
-                else if (result.contains("table two")) {
-                    beginNav(PATH.TAB2);
-                }
-                else if (result.contains("table three")) {
-                    beginNav(PATH.TAB3);
-                }
-                else if (result.contains(("table four"))) {
-                    beginNav(PATH.TAB4);
-                }
-                else if (result.contains("table five")) {
-                    beginNav(PATH.TAB5);
-                }
-                else if (result.contains("table six")) {
-                    beginNav(PATH.TAB6);
-                }
+//                else if (result.contains("table one")) {
+//                    beginNav(PATH.TAB1);
+//                }
+//                else if (result.contains("table two")) {
+//                    beginNav(PATH.TAB2);
+//                }
+//                else if (result.contains("table three")) {
+//                    beginNav(PATH.TAB3);
+//                }
+//                else if (result.contains(("table four"))) {
+//                    beginNav(PATH.TAB4);
+//                }
+//                else if (result.contains("table five")) {
+//                    beginNav(PATH.TAB5);
+//                }
+//                else if (result.contains("table six")) {
+//                    beginNav(PATH.TAB6);
+//                }
                 else if (result.contains("home")) {
                     beginNav(PATH.HOME);
                 }
