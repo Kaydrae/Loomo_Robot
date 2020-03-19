@@ -509,8 +509,8 @@ public class VisionPresenter {
                 else if (result.contains("boardroom three")) {
                     beginNav(PATH.BRD3);
                 }
-                    beginNav(PATH.LOBBY);
                 else if (result.contains("lobby")) {
+                    beginNav(PATH.LOBBY);
                 }
                 else if (result.contains("home")) {
                     beginNav(PATH.HOME);
