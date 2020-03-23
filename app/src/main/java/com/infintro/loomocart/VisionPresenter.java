@@ -2,12 +2,14 @@ package com.infintro.loomocart;
 
 import android.util.Log;
 import android.view.Surface;
-import android.os.CountDownTimer;
-import android.os.Handler;
+import android.view.View;
+import android.widget.Button;
+import android.widget.LinearLayout;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.Stack;
 
 import com.segway.robot.algo.Pose2D;
 import com.segway.robot.algo.dts.BaseControlCommand;
@@ -44,6 +46,7 @@ public class VisionPresenter {
 
     private PresenterChangeInterface mPresInterface;
     private ViewChangeInterface mViewInterface;
+    private LinearLayout mButtonLayout;
 
     //service interfaces
     private Vision mVision;
@@ -77,40 +80,34 @@ public class VisionPresenter {
     private ServiceBinder.BindStateListener mSpeakerBindStateListener;
     private TtsListener mTtsListener;
 
-    //path variables
-//    private Float[][][] paths = {
-//            {{2.44f, 0f, 0f}},
-//            {{7.32f, 0f, 0f}},
-//            {{12.19f, 0f, 0f}},
-//            {{0.91f, 0f, (float) (Math.PI/2)}, {0.91f, 9.14f, 0f}},
-//            {{0f, 0f, 0f}}
-//    };
+
+    //pathing variables
+
+    private Stack reversePath;      // stack for storing the checkpoints we have already been through
 
     private Float[][][] paths = {
-            {{2.44f, 0f, 0f}},
-            {{7.32f, 0f, 0f}},
-            {{12.19f, 0f, 0f}},
-            {{0.91f, 0f, (float) (Math.PI/2)}, {0.91f, 9.14f, 0f}},
-            {{1.52f, 0f, 0f}},
-            {{5.79f, 0f, 0f}},
-            {{7.62f, 0f, 0f}},
-            {{9.45f, 0f, 0f}},
-            {{12.8f, 0f, 0f}},
-            {{0f, 2.74f, 0f}},
-            {{0f, 0f, 0f}}
+            {{0.91f, 0f, (float) (Math.PI/2)}, {0.91f, 9.14f, 0f}}, // lobby path
+            {{2.44f, 0f, 0f}},                                      // board room 1
+            {{7.32f, 0f, 0f}},                                      // board room 2
+            {{12.19f, 0f, 0f}},                                     // board room 3
+            {{1.52f, 0f, 0f}},                                      // table 1
+            {{5.79f, 0f, 0f}},                                      // table 2
+            {{7.62f, 0f, 0f}},                                      // table 3
+            {{9.45f, 0f, 0f}},                                      // table 4
+            {{12.8f, 0f, 0f}},                                      // table 5
+            {{0f, 2.74f, 0f}},                                      // table 6
+            {{0f, 0f, 0f}}                                          // home
     };
 
     private Pose2D pose;
 
-    private List<Float[]> homePath;
-
-//    public enum PATH{BRD1, BRD2, BRD3, LOBBY, HOME}
-    public enum PATH{BRD1, BRD2, BRD3, LOBBY, TAB1, TAB2, TAB3, TAB4, TAB5, TAB6, HOME};
+    public enum PATH{LOBBY, BRD1, BRD2, BRD3, TAB1, TAB2, TAB3, TAB4, TAB5, TAB6, HOME};
     private PATH mPath;
 
     /* Initialize the Vision Presenter */
-    public VisionPresenter(ViewChangeInterface _ViewInterface) {
+    public VisionPresenter(ViewChangeInterface _ViewInterface, LinearLayout _ButtonLayout) {
         mViewInterface = _ViewInterface;
+        mButtonLayout = _ButtonLayout;
     }
 
     public void startPresenter() {
@@ -127,6 +124,8 @@ public class VisionPresenter {
         mBase.bindService(LoomoCart.getContext(), mBaseStateListener);
         mRecognizer.bindService(LoomoCart.getContext(), mRecognitionBindStateListener);
         mSpeaker.bindService(LoomoCart.getContext(), mSpeakerBindStateListener);
+
+        reversePath = new Stack();
 
         mPersonTracking = new PersonTrackingProfile(3, 1.0f);
 
@@ -169,6 +168,26 @@ public class VisionPresenter {
         mHead.setWorldPitch(angle * (float) Math.PI / 180f);
     }
 
+    private void disableButtons() {
+        int buttonCount = mButtonLayout.getChildCount();
+        Log.d(TAG, "Button Count: " + buttonCount);
+        for (int i = 0; i < buttonCount; i++) {
+            if (i != 1) {
+                mButtonLayout.getChildAt(i).setEnabled(false);
+            }
+        }
+    }
+
+    private void enableButtons() {
+        int buttonCount = mButtonLayout.getChildCount();
+        Log.d(TAG, "Button Count: " + buttonCount);
+        for (int i = 0; i < buttonCount; i++) {
+            if (i != 1) {
+                mButtonLayout.getChildAt(i).setEnabled(true);
+            }
+        }
+    }
+
     public void beginFollow() {
         if (mState == States.INIT_NAV) {
             speak("I cannot follow, I am currently navigating.", 100);
@@ -186,6 +205,7 @@ public class VisionPresenter {
         startTime = System.currentTimeMillis();
         mState = States.INIT_TRACK;
         mDTS.startPlannerPersonTracking(mPersons[0], mPersonTracking, 60*1000*1000, mTrackingPlanner);
+
     }
 
     public void endFollow() {
@@ -239,18 +259,43 @@ public class VisionPresenter {
             mBase.cleanOriginalPoint();
             pose = mBase.getOdometryPose(-1);
             mBase.setOriginalPoint(pose);
+            reversePath.clear();
+            reversePath.push(paths[PATH.HOME.ordinal()]);
         }
 
         Log.d(TAG, "Original Checkpoint: " + pose);
 
         mPath = _path;
         for (Float[] checkpoint : paths[mPath.ordinal()]) {
-            mBase.addCheckPoint(checkpoint[0], checkpoint[1], checkpoint[2]);
+            int indexOfReversePath = reversePath.search(checkpoint);
+            if (indexOfReversePath > -1) {
+                for (int i = 1; i <= indexOfReversePath; i++) {
+                    Float[] point = (Float[])reversePath.pop();
+                    mBase.addCheckPoint(point[0], point[1], point[2]);
+                }
+            }
+            else {
+                int numCheckPoints = 0;
+                for (int i = 0; i < mPath.ordinal()+1; i++) {
+                    numCheckPoints++;
+                }
+
+                if (reversePath.size() > numCheckPoints) {
+                    while (reversePath.size() > numCheckPoints) {
+                        Float[] point = (Float[])reversePath.pop();
+                        mBase.addCheckPoint(point[0], point[1], point[2]);
+                    }
+                }
+
+                mBase.addCheckPoint(checkpoint[0], checkpoint[1], checkpoint[2]);
+                reversePath.push(checkpoint);
+            }
         }
         Log.d(TAG, "Added checkpoints...");
         Log.d(TAG, "Current Path: " + mPath);
 
         mState = States.INIT_NAV;
+//        disableButtons();
     }
 
     public void endNav() {
@@ -263,6 +308,7 @@ public class VisionPresenter {
             mState = States.END_NAV;
             Log.d(TAG, "Nav stopped.");
             speak("I have arrived.", 100);
+//            enableButtons();
         } else {
             speak("I am not currently navigating.", 100);
         }
