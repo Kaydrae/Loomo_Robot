@@ -2,12 +2,12 @@ package com.infintro.loomocart;
 
 import android.util.Log;
 import android.view.Surface;
-import android.os.CountDownTimer;
-import android.os.Handler;
+import android.widget.LinearLayout;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.Stack;
 
 import com.segway.robot.algo.Pose2D;
 import com.segway.robot.algo.dts.BaseControlCommand;
@@ -44,6 +44,7 @@ public class VisionPresenter {
 
     private PresenterChangeInterface mPresInterface;
     private ViewChangeInterface mViewInterface;
+    private LinearLayout mButtonLayout;
 
     //service interfaces
     private Vision mVision;
@@ -77,40 +78,60 @@ public class VisionPresenter {
     private ServiceBinder.BindStateListener mSpeakerBindStateListener;
     private TtsListener mTtsListener;
 
-    //path variables
-//    private Float[][][] paths = {
-//            {{2.44f, 0f, 0f}},
-//            {{7.32f, 0f, 0f}},
-//            {{12.19f, 0f, 0f}},
-//            {{0.91f, 0f, (float) (Math.PI/2)}, {0.91f, 9.14f, 0f}},
-//            {{0f, 0f, 0f}}
-//    };
+    //serial communication variable
+    private SerialCommunicator mSerial;
 
+
+    //pathing variables
+
+    private Stack reversePath;      // stack for storing the checkpoints we have already been through
+
+    //the paths for loomo to travel on
     private Float[][][] paths = {
-            {{2.44f, 0f, 0f}},
-            {{7.32f, 0f, 0f}},
-            {{12.19f, 0f, 0f}},
-            {{0.91f, 0f, (float) (Math.PI/2)}, {0.91f, 9.14f, 0f}},
-            {{1.52f, 0f, 0f}},
-            {{5.79f, 0f, 0f}},
-            {{7.62f, 0f, 0f}},
-            {{9.45f, 0f, 0f}},
-            {{12.8f, 0f, 0f}},
-            {{0f, 2.74f, 0f}},
-            {{0f, 0f, 0f}}
+            {{0.91f, 0f, (float) (Math.PI/2)}, {0.91f, 3.0f, (float) (Math.PI/2)}, {0.91f, 6.0f, (float) (Math.PI/2)}, {0.91f, 9.14f, 0f}}, // lobby path
+            {{2.44f, 0f, 0f}},                                      // board room 1
+            {{7.32f, 0f, 0f}},                                      // board room 2
+            {{12.19f, 0f, 0f}},                                     // board room 3
+            {{1.52f, 0f, 0f}},                                      // table 1
+            {{5.79f, 0f, 0f}},                                      // table 2
+            {{7.62f, 0f, 0f}},                                      // table 3
+            {{9.45f, 0f, 0f}},                                      // table 4
+            {{12.8f, 0f, 0f}},                                      // table 5
+            {{0f, 2.74f, 0f}},                                      // table 6
+            {{0f, 0f, 0f}}                                          // home
     };
 
+    //signals for the trailer lights
+    // "L" is left turn, "R" is right turn, "G" is go, "S" is stop
+    private String[][] signals = {
+            {"L", "G", "G", "S"},       //lobby path
+            {"S"},                      //board room 1
+            {"S"},                      //board room 2
+            {"S"},                      //board room 3
+            {"S"},                      //table 1
+            {"S"},                      //table 2
+            {"S"},                      //table 3
+            {"S"},                      //table 4
+            {"S"},                      //table 5
+            {"S"},                      //table 6
+            {"S"}                       //home
+    };
+
+    //variable for tracking the current signal to send
+    private int currentSignal;
+
+    //current positions
     private Pose2D pose;
 
-    private List<Float[]> homePath;
-
-//    public enum PATH{BRD1, BRD2, BRD3, LOBBY, HOME}
-    public enum PATH{BRD1, BRD2, BRD3, LOBBY, TAB1, TAB2, TAB3, TAB4, TAB5, TAB6, HOME};
+    //path labels
+    public enum PATH{LOBBY, BRD1, BRD2, BRD3, TAB1, TAB2, TAB3, TAB4, TAB5, TAB6, HOME};
     private PATH mPath;
 
     /* Initialize the Vision Presenter */
-    public VisionPresenter(ViewChangeInterface _ViewInterface) {
+    public VisionPresenter(ViewChangeInterface _ViewInterface, LinearLayout _ButtonLayout) {
         mViewInterface = _ViewInterface;
+        mButtonLayout = _ButtonLayout;
+        mSerial = new SerialCommunicator(); //create new serial instance
     }
 
     public void startPresenter() {
@@ -128,9 +149,16 @@ public class VisionPresenter {
         mRecognizer.bindService(LoomoCart.getContext(), mRecognitionBindStateListener);
         mSpeaker.bindService(LoomoCart.getContext(), mSpeakerBindStateListener);
 
+        reversePath = new Stack();
+
         mPersonTracking = new PersonTrackingProfile(3, 1.0f);
 
         mPath = PATH.HOME;
+
+        mSerial.serialBegin();  //begin serial communications
+        currentSignal = 0;      //set current signal to zero
+//        String cmd = "G";
+//        mSerial.sendBytes(cmd.getBytes());
     }
 
     /* Stop the vision presenter */
@@ -144,6 +172,8 @@ public class VisionPresenter {
         mHead.unbindService();
         mBase.unbindService();
         mRecognizer.unbindService();
+
+        mSerial.serialEnd();    //close serial
     }
 
     /* Helper functions */
@@ -169,6 +199,26 @@ public class VisionPresenter {
         mHead.setWorldPitch(angle * (float) Math.PI / 180f);
     }
 
+    private void disableButtons() {
+        int buttonCount = mButtonLayout.getChildCount();
+        Log.d(TAG, "Button Count: " + buttonCount);
+        for (int i = 0; i < buttonCount; i++) {
+            if (i != 1) {
+                mButtonLayout.getChildAt(i).setEnabled(false);
+            }
+        }
+    }
+
+    private void enableButtons() {
+        int buttonCount = mButtonLayout.getChildCount();
+        Log.d(TAG, "Button Count: " + buttonCount);
+        for (int i = 0; i < buttonCount; i++) {
+            if (i != 1) {
+                mButtonLayout.getChildAt(i).setEnabled(true);
+            }
+        }
+    }
+
     public void beginFollow() {
         if (mState == States.INIT_NAV) {
             speak("I cannot follow, I am currently navigating.", 100);
@@ -186,6 +236,7 @@ public class VisionPresenter {
         startTime = System.currentTimeMillis();
         mState = States.INIT_TRACK;
         mDTS.startPlannerPersonTracking(mPersons[0], mPersonTracking, 60*1000*1000, mTrackingPlanner);
+
     }
 
     public void endFollow() {
@@ -239,18 +290,48 @@ public class VisionPresenter {
             mBase.cleanOriginalPoint();
             pose = mBase.getOdometryPose(-1);
             mBase.setOriginalPoint(pose);
+            reversePath.clear();
+            reversePath.push(paths[PATH.HOME.ordinal()]);
         }
 
         Log.d(TAG, "Original Checkpoint: " + pose);
 
         mPath = _path;
         for (Float[] checkpoint : paths[mPath.ordinal()]) {
-            mBase.addCheckPoint(checkpoint[0], checkpoint[1], checkpoint[2]);
+            int indexOfReversePath = reversePath.search(checkpoint);
+            if (indexOfReversePath > -1) {
+                for (int i = 1; i <= indexOfReversePath; i++) {
+                    Float[] point = (Float[])reversePath.pop();
+                    mBase.addCheckPoint(point[0], point[1], point[2]);
+                }
+            }
+            else {
+                int numCheckPoints = 0;
+                for (int i = 0; i < mPath.ordinal()+1; i++) {
+                    numCheckPoints++;
+                }
+
+                if (reversePath.size() > numCheckPoints) {
+                    while (reversePath.size() > numCheckPoints) {
+                        Float[] point = (Float[])reversePath.pop();
+                        mBase.addCheckPoint(point[0], point[1], point[2]);
+                    }
+                }
+
+                mBase.addCheckPoint(checkpoint[0], checkpoint[1], checkpoint[2]);
+                reversePath.push(checkpoint);
+            }
         }
         Log.d(TAG, "Added checkpoints...");
         Log.d(TAG, "Current Path: " + mPath);
 
+        currentSignal = 0;  //reset current signal
+
+        String cmd = "G";
+        mSerial.sendBytes(cmd.getBytes());  //send go signal
+
         mState = States.INIT_NAV;
+//        disableButtons();
     }
 
     public void endNav() {
@@ -263,6 +344,7 @@ public class VisionPresenter {
             mState = States.END_NAV;
             Log.d(TAG, "Nav stopped.");
             speak("I have arrived.", 100);
+//            enableButtons();
         } else {
             speak("I am not currently navigating.", 100);
         }
@@ -329,6 +411,10 @@ public class VisionPresenter {
         @Override
         public void onCheckPointArrived(CheckPoint checkPoint, Pose2D realPose, boolean isLast) {
             Log.d(TAG, "Arrived at check point: " + checkPoint);
+
+
+            //get the next light signal to send based on current checkpoint
+            mSerial.sendBytes(signals[mPath.ordinal()][currentSignal++].getBytes());
 
             if (isLast) {
                 Log.d(TAG, "ARRIVED AT LAST CHECKPOINT");
@@ -500,24 +586,39 @@ public class VisionPresenter {
                 beginFollow();
             }
             else if (result.contains("navigate to") || result.contains("go to")) {
-                if (result.contains("table one") || result.contains("admissions")) {
-                    beginNav(PATH.TAB1);
+                if (result.contains("boardroom one")) {
+                    beginNav(PATH.BRD1);
                 }
-                else if (result.contains("table two") || result.contains("student services")) {
-                    beginNav(PATH.TAB2);
+                else if (result.contains("boardroom two")) {
+                    beginNav(PATH.BRD2);
                 }
-                else if (result.contains("table three") || result.contains("clubs")) {
-                    beginNav(PATH.TAB3);
+                else if (result.contains("boardroom three")) {
+                    beginNav(PATH.BRD3);
                 }
-                else if (result.contains("table four") || result.contains("faculty")) {
-                    beginNav(PATH.TAB4);
+                else if (result.contains("lobby")) {
+                    beginNav(PATH.LOBBY);
                 }
-                else if (result.contains("table five") || result.contains("housing")) {
-                    beginNav(PATH.TAB5);
+                else if (result.contains("home")) {
+                    beginNav(PATH.HOME);
                 }
-                else if (result.contains("table six") || result.contains("financial aid")) {
-                    beginNav(PATH.TAB6);
-                }
+//                else if (result.contains("table one")) {
+//                    beginNav(PATH.TAB1);
+//                }
+//                else if (result.contains("table two")) {
+//                    beginNav(PATH.TAB2);
+//                }
+//                else if (result.contains("table three")) {
+//                    beginNav(PATH.TAB3);
+//                }
+//                else if (result.contains(("table four"))) {
+//                    beginNav(PATH.TAB4);
+//                else if (result.contains("table five")) {
+//                }
+//                    beginNav(PATH.TAB5);
+//                }
+//                else if (result.contains("table six")) {
+//                }
+//                    beginNav(PATH.TAB6);
                 else if (result.contains("home")) {
                     beginNav(PATH.HOME);
                 }

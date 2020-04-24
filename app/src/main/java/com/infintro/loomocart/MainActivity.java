@@ -88,9 +88,6 @@ public class MainActivity extends Activity  {
         mLobbyButton = findViewById(R.id.lobbyButton);
 
         mButtonLayout = findViewById(R.id.buttonLayout);
-
-        mButtonLayout.setEnabled(false);
-        mFollowButton.setEnabled(false);
     }
 
     private void initListener() {
@@ -105,7 +102,7 @@ public class MainActivity extends Activity  {
     private TextureView.SurfaceTextureListener mSurfaceTextureListener = new TextureView.SurfaceTextureListener() {
         @Override
         public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int i, int i1) {
-            mVisionPresenter = new VisionPresenter(mViewChangeInterface);
+            mVisionPresenter = new VisionPresenter(mViewChangeInterface, mButtonLayout);
             mVisionPresenter.startPresenter();
         }
 
