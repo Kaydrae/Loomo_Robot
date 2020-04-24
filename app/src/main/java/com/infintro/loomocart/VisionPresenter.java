@@ -2,8 +2,6 @@ package com.infintro.loomocart;
 
 import android.util.Log;
 import android.view.Surface;
-import android.view.View;
-import android.widget.Button;
 import android.widget.LinearLayout;
 
 import java.util.ArrayList;
@@ -80,13 +78,17 @@ public class VisionPresenter {
     private ServiceBinder.BindStateListener mSpeakerBindStateListener;
     private TtsListener mTtsListener;
 
+    //serial communication variable
+    private SerialCommunicator mSerial;
+
 
     //pathing variables
 
     private Stack reversePath;      // stack for storing the checkpoints we have already been through
 
+    //the paths for loomo to travel on
     private Float[][][] paths = {
-            {{0.91f, 0f, (float) (Math.PI/2)}, {0.91f, 9.14f, 0f}}, // lobby path
+            {{0.91f, 0f, (float) (Math.PI/2)}, {0.91f, 3.0f, (float) (Math.PI/2)}, {0.91f, 6.0f, (float) (Math.PI/2)}, {0.91f, 9.14f, 0f}}, // lobby path
             {{2.44f, 0f, 0f}},                                      // board room 1
             {{7.32f, 0f, 0f}},                                      // board room 2
             {{12.19f, 0f, 0f}},                                     // board room 3
@@ -99,8 +101,29 @@ public class VisionPresenter {
             {{0f, 0f, 0f}}                                          // home
     };
 
+    //signals for the trailer lights
+    // "L" is left turn, "R" is right turn, "G" is go, "S" is stop
+    private String[][] signals = {
+            {"L", "G", "G", "S"},       //lobby path
+            {"S"},                      //board room 1
+            {"S"},                      //board room 2
+            {"S"},                      //board room 3
+            {"S"},                      //table 1
+            {"S"},                      //table 2
+            {"S"},                      //table 3
+            {"S"},                      //table 4
+            {"S"},                      //table 5
+            {"S"},                      //table 6
+            {"S"}                       //home
+    };
+
+    //variable for tracking the current signal to send
+    private int currentSignal;
+
+    //current positions
     private Pose2D pose;
 
+    //path labels
     public enum PATH{LOBBY, BRD1, BRD2, BRD3, TAB1, TAB2, TAB3, TAB4, TAB5, TAB6, HOME};
     private PATH mPath;
 
@@ -108,6 +131,7 @@ public class VisionPresenter {
     public VisionPresenter(ViewChangeInterface _ViewInterface, LinearLayout _ButtonLayout) {
         mViewInterface = _ViewInterface;
         mButtonLayout = _ButtonLayout;
+        mSerial = new SerialCommunicator(); //create new serial instance
     }
 
     public void startPresenter() {
@@ -130,6 +154,11 @@ public class VisionPresenter {
         mPersonTracking = new PersonTrackingProfile(3, 1.0f);
 
         mPath = PATH.HOME;
+
+        mSerial.serialBegin();  //begin serial communications
+        currentSignal = 0;      //set current signal to zero
+//        String cmd = "G";
+//        mSerial.sendBytes(cmd.getBytes());
     }
 
     /* Stop the vision presenter */
@@ -143,6 +172,8 @@ public class VisionPresenter {
         mHead.unbindService();
         mBase.unbindService();
         mRecognizer.unbindService();
+
+        mSerial.serialEnd();    //close serial
     }
 
     /* Helper functions */
@@ -294,6 +325,11 @@ public class VisionPresenter {
         Log.d(TAG, "Added checkpoints...");
         Log.d(TAG, "Current Path: " + mPath);
 
+        currentSignal = 0;  //reset current signal
+
+        String cmd = "G";
+        mSerial.sendBytes(cmd.getBytes());  //send go signal
+
         mState = States.INIT_NAV;
 //        disableButtons();
     }
@@ -375,6 +411,10 @@ public class VisionPresenter {
         @Override
         public void onCheckPointArrived(CheckPoint checkPoint, Pose2D realPose, boolean isLast) {
             Log.d(TAG, "Arrived at check point: " + checkPoint);
+
+
+            //get the next light signal to send based on current checkpoint
+            mSerial.sendBytes(signals[mPath.ordinal()][currentSignal++].getBytes());
 
             if (isLast) {
                 Log.d(TAG, "ARRIVED AT LAST CHECKPOINT");
